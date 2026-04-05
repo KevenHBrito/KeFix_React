@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Truck, ShieldCheck, RefreshCcw, Headphones, ArrowRight, Smartphone } from 'lucide-react';
+import { ShieldCheck, ArrowRight, Smartphone, Truck, RefreshCcw, Headphones, Package } from 'lucide-react';
 import { Produto, Categoria } from '../types';
-import { api } from '../utils/api';
+import { FirestoreService } from '../lib/services';
 import ProdutoCard from '../components/ProdutoCard';
-import * as Icons from 'lucide-react';
 
-function CatIcon({ nome }: { nome: string }) {
-  const Icon = (Icons as any)[nome.split('-').map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join('')];
-  return Icon ? <Icon size={28} /> : <Smartphone size={28} />;
+function CatIcon({ icone }: { icone: string }) {
+  // Map simple string icons or just use common ones
+  if (icone === 'smartphone') return <Smartphone size={28} />;
+  if (icone === 'package') return <Package size={28} />;
+  return <Smartphone size={28} />; // Default
 }
 
 export default function Home() {
@@ -18,8 +19,8 @@ export default function Home() {
 
   useEffect(() => {
     Promise.all([
-      api.get<Produto[]>('/produtos?destaque=1&limit=8'),
-      api.get<Categoria[]>('/categorias'),
+      FirestoreService.getProdutos({ destaque: true, limitCount: 8 }),
+      FirestoreService.getCategorias(),
     ]).then(([prods, cats]) => {
       setDestaques(prods);
       setCategorias(cats);
@@ -32,22 +33,24 @@ export default function Home() {
       <section className="hero">
         <div className="hero-content container">
           <div className="hero-texto">
-            <span className="hero-badge">🔧 Distribuidora Oficial</span>
-            <h1>Peças originais para <span className="destaque-texto">qualquer celular</span></h1>
-            <p>Telas, baterias, conectores e muito mais. Entrega rápida para todo o Brasil com garantia de qualidade.</p>
+            <span className="hero-badge">
+              <ShieldCheck size={16} /> Distribuidora Oficial em São Paulo
+            </span>
+            <h1>Qualidade que seu <br /><span className="destaque-texto">celular merece</span></h1>
+            <p>A maior variedade de peças de reposição com garantia de procedência. Atacado e varejo com entrega expressa.</p>
             <div className="hero-botoes">
-              <a href="#produtos" className="btn-primary">Ver produtos</a>
-              <Link to="/auth?tab=cadastro" className="btn-outline">Criar conta grátis</Link>
+              <a href="#produtos" className="btn-primary">Explorar Catálogo <ArrowRight size={18} /></a>
+              <Link to="/auth?tab=cadastro" className="btn-outline">Criar Conta Comercial</Link>
             </div>
             <div className="hero-stats">
-              <div><strong>500+</strong><span>Produtos</span></div>
-              <div><strong>99%</strong><span>Satisfação</span></div>
-              <div><strong>24h</strong><span>Entrega SP</span></div>
+              <div><strong>8k+</strong><span>Clientes Atendidos</span></div>
+              <div><strong>15k+</strong><span>Itens em Estoque</span></div>
+              <div><strong>100%</strong><span>Garantia de Teste</span></div>
             </div>
           </div>
           <div className="hero-img">
             <div className="hero-circle">
-              <Smartphone size={80} color="#007BFF" />
+              <Smartphone size={120} strokeWidth={1.5} />
             </div>
           </div>
         </div>
@@ -60,7 +63,7 @@ export default function Home() {
           <div className="grid-categorias">
             {categorias.map(cat => (
               <Link key={cat.id} to={`/categoria/${cat.slug}`} className="card-categoria">
-                <CatIcon nome={cat.icone} />
+                <CatIcon icone={cat.icone} />
                 <span>{cat.nome}</span>
               </Link>
             ))}

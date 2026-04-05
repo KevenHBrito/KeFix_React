@@ -1,13 +1,19 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  signOut,
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { Usuario } from '../types';
-import { api } from '../utils/api';
 
 interface AuthContextType {
   usuario: Usuario | null;
   loading: boolean;
   login: (email: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
-  recarregar: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -16,31 +22,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function recarregar() {
-    try {
-      const data: any = await api.get('/auth/me');
-      setUsuario(data.autenticado ? data.usuario : null);
-    } catch {
-      setUsuario(null);
-    } finally {
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      setLoading(true);
+      if (fbUser) {
+        // Fetch extra data from Firestore
+        const userDoc = await getDoc(doc(db, 'usuarios', fbUser.uid));
+        const userData = userDoc.exists() ? userDoc.data() : { tipo: 'cliente' };
+        
+        setUsuario({
+          id: fbUser.uid as any,
+          nome: fbUser.displayName || userData.nome || fbUser.email?.split('@')[0] || 'Usuário',
+          email: fbUser.email!,
+          tipo: userData.tipo || 'cliente'
+        });
+      } else {
+        setUsuario(null);
+      }
       setLoading(false);
-    }
-  }
-
-  useEffect(() => { recarregar(); }, []);
+    });
+    return unsub;
+  }, []);
 
   async function login(email: string, senha: string) {
-    const data: any = await api.post('/auth/login', { email, senha });
-    setUsuario(data.usuario);
+    await signInWithEmailAndPassword(auth, email, senha);
   }
 
   async function logout() {
-    await api.post('/auth/logout', {});
-    setUsuario(null);
+    await signOut(auth);
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, loading, login, logout, recarregar }}>
+    <AuthContext.Provider value={{ usuario, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

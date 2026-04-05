@@ -19,7 +19,7 @@ import AdminProdutos from './pages/admin/Produtos';
 import AdminPedidos from './pages/admin/Pedidos';
 import AdminCategorias from './pages/admin/Categorias';
 
-function StoreLaout() {
+function StoreLayout() {
   return (
     <>
       <Header />
@@ -55,7 +55,7 @@ export default function App() {
                 </Route>
               </Routes>
             } />
-            <Route path="/*" element={<StoreLaout />} />
+            <Route path="/*" element={<StoreLayout />} />
           </Routes>
         </CarrinhoProvider>
       </AuthProvider>
