@@ -45,16 +45,12 @@ export default function App() {
       <AuthProvider>
         <CarrinhoProvider>
           <Routes>
-            <Route path="/admin/*" element={
-              <Routes>
-                <Route element={<AdminLayout />}>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="produtos" element={<AdminProdutos />} />
-                  <Route path="pedidos" element={<AdminPedidos />} />
-                  <Route path="categorias" element={<AdminCategorias />} />
-                </Route>
-              </Routes>
-            } />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="produtos" element={<AdminProdutos />} />
+              <Route path="pedidos" element={<AdminPedidos />} />
+              <Route path="categorias" element={<AdminCategorias />} />
+            </Route>
             <Route path="/*" element={<StoreLayout />} />
           </Routes>
         </CarrinhoProvider>

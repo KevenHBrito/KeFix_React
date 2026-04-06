@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
 import { useCarrinho } from '../context/CarrinhoContext';
 import { useAuth } from '../context/AuthContext';
-import { api, imgUrl, formatarPreco } from '../utils/api';
+import { FirestoreService } from '../lib/services';
+import { imgUrl, formatarPreco } from '../utils/api';
+import { PageBreadcrumb } from '../components/PageBreadcrumb';
 
 export default function CarrinhoPage() {
   const { carrinho, atualizarItem, removerItem } = useCarrinho();
@@ -28,8 +30,13 @@ export default function CarrinhoPage() {
     setErro('');
     setEnviando(true);
     try {
-      const data: any = await api.post('/pedidos', { ...form });
-      navigate(`/confirmacao/${data.pedido_id}`);
+      const pedido_id = await FirestoreService.criarPedido({
+        ...form,
+        usuario_id: usuario?.id || null,
+        total,
+        items: carrinho.items,
+      });
+      navigate(`/confirmacao/${pedido_id}`);
     } catch (err: any) {
       setErro(err.message);
     } finally {
@@ -39,19 +46,33 @@ export default function CarrinhoPage() {
 
   if (carrinho.items.length === 0) {
     return (
-      <main className="container carrinho-vazio">
-        <ShoppingBag size={64} />
-        <h2>Seu carrinho está vazio</h2>
-        <p>Adicione produtos para continuar comprando.</p>
-        <Link to="/" className="btn-primary">Ver Produtos</Link>
+      <main className="container carrinho-vazio-page">
+        <PageBreadcrumb items={[{ label: 'Início', to: '/' }, { label: 'Carrinho' }]} />
+        <div className="carrinho-vazio">
+          <div className="carrinho-vazio-ico">
+            <ShoppingBag size={56} strokeWidth={1.25} />
+          </div>
+          <h2>Seu carrinho está vazio</h2>
+          <p>Explore o catálogo e adicione peças com um clique no carrinho.</p>
+          <Link to="/" className="btn-primary">Ver produtos</Link>
+          <Link to="/busca" className="btn-outline carrinho-vazio-busca">Ir para busca</Link>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="container carrinho-page">
+      <PageBreadcrumb items={[{ label: 'Início', to: '/' }, { label: 'Carrinho' }]} />
       <Link to="/" className="voltar-link"><ArrowLeft size={16} /> Continuar comprando</Link>
-      <h1>Carrinho</h1>
+      <div className="carrinho-page-head">
+        <h1>Carrinho</h1>
+        <p className="carrinho-page-sub">Revise os itens e finalize com seus dados de entrega.</p>
+      </div>
+      <div className="carrinho-trust-bar">
+        <span><ShieldCheck size={16} /> Pagamento informado no pedido</span>
+        <span><Truck size={16} /> Frete combinado após confirmação</span>
+      </div>
 
       <div className="carrinho-layout">
         {/* Itens */}

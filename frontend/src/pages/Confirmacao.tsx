@@ -1,30 +1,40 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, PartyPopper } from 'lucide-react';
 import { Pedido } from '../types';
-import { api, formatarPreco } from '../utils/api';
+import { FirestoreService } from '../lib/services';
+import { formatarPreco } from '../utils/api';
+import { PageBreadcrumb } from '../components/PageBreadcrumb';
 
 export default function ConfirmacaoPage() {
   const { id } = useParams<{ id: string }>();
   const [pedido, setPedido] = useState<Pedido | null>(null);
 
   useEffect(() => {
-    // Try to get from meus pedidos (if logged in) or just show id
-    api.get<Pedido[]>('/pedidos/meus')
-      .then(pedidos => {
-        const found = pedidos.find(p => p.id === parseInt(id!));
-        if (found) setPedido(found);
-      })
-      .catch(() => { });
+    if (!id) return;
+    const num = parseInt(id, 10);
+    if (Number.isNaN(num)) return;
+    FirestoreService.getPedidoConfirmacao(num)
+      .then(setPedido)
+      .catch(() => setPedido(null));
   }, [id]);
 
   return (
     <main className="container confirmacao-page">
+      <PageBreadcrumb
+        items={[
+          { label: 'Início', to: '/' },
+          { label: 'Pedido confirmado' },
+        ]}
+      />
       <div className="confirmacao-card">
-        <CheckCircle size={64} color="#28a745" />
-        <h1>Pedido Confirmado!</h1>
-        <p className="pedido-numero">Pedido <strong>#{id}</strong></p>
-        <p>Seu pedido foi recebido e está sendo processado. Entraremos em contato em breve.</p>
+        <div className="confirmacao-ico-wrap">
+          <CheckCircle className="confirmacao-check" size={56} strokeWidth={1.75} aria-hidden />
+          <PartyPopper className="confirmacao-party" size={28} aria-hidden />
+        </div>
+        <h1>Pedido confirmado</h1>
+        <p className="pedido-numero">Número do pedido <strong>#{id}</strong></p>
+        <p className="confirmacao-msg">Recebemos seu pedido e vamos processar em breve. Você pode acompanhar o status em &quot;Minha conta&quot;.</p>
 
         {pedido && (
           <div className="confirmacao-itens">

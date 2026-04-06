@@ -59,7 +59,10 @@ export default function Home() {
       {/* Categorias */}
       <section className="secao-categorias">
         <div className="container">
-          <h2 className="secao-titulo">Categorias</h2>
+          <div className="secao-cabecalho">
+            <h2 className="secao-titulo">Categorias</h2>
+            <p className="secao-subtitulo">Navegue por tipo de peça e encontre o que precisa mais rápido.</p>
+          </div>
           <div className="grid-categorias">
             {categorias.map(cat => (
               <Link key={cat.id} to={`/categoria/${cat.slug}`} className="card-categoria">
@@ -74,8 +77,11 @@ export default function Home() {
       {/* Produtos em Destaque */}
       <section className="secao-produtos" id="produtos">
         <div className="container">
-          <div className="secao-header">
-            <h2 className="secao-titulo">Produtos em Destaque</h2>
+          <div className="secao-header secao-header-produtos">
+            <div>
+              <h2 className="secao-titulo">Produtos em destaque</h2>
+              <p className="secao-subtitulo secao-subtitulo-inline">Seleção com alta rotatividade e garantia KeFix.</p>
+            </div>
             <Link to="/busca" className="ver-todos">
               Ver todos <ArrowRight size={16} />
             </Link>

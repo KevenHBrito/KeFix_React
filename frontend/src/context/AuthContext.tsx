@@ -1,13 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
-  signOut,
-  User as FirebaseUser 
-} from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
-import { Usuario } from '../types';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { api } from "../utils/api";
+import type { Usuario } from "../types";
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -23,33 +16,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      setLoading(true);
-      if (fbUser) {
-        // Fetch extra data from Firestore
-        const userDoc = await getDoc(doc(db, 'usuarios', fbUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : { tipo: 'cliente' };
-        
-        setUsuario({
-          id: fbUser.uid as any,
-          nome: fbUser.displayName || userData.nome || fbUser.email?.split('@')[0] || 'Usuário',
-          email: fbUser.email!,
-          tipo: userData.tipo || 'cliente'
-        });
-      } else {
-        setUsuario(null);
-      }
-      setLoading(false);
-    });
-    return unsub;
+    api
+      .get<{ usuario: Usuario | null }>("/auth/me")
+      .then((r) => setUsuario(r.usuario))
+      .catch(() => setUsuario(null))
+      .finally(() => setLoading(false));
   }, []);
 
   async function login(email: string, senha: string) {
-    await signInWithEmailAndPassword(auth, email, senha);
+    const r = await api.post<{ usuario: Usuario }>("/auth/login", { email, senha });
+    setUsuario(r.usuario);
   }
 
   async function logout() {
-    await signOut(auth);
+    await api.post("/auth/logout", {});
+    setUsuario(null);
   }
 
   return (

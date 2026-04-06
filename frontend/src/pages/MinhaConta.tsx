@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, LogOut, Clock } from 'lucide-react';
+import { Package, LogOut, Clock, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { PageBreadcrumb } from '../components/PageBreadcrumb';
 import { Pedido } from '../types';
-import { api, formatarPreco } from '../utils/api';
+import { FirestoreService } from '../lib/services';
+import { formatarPreco } from '../utils/api';
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pendente:   { label: 'Pendente',   color: '#ffc107' },
@@ -14,39 +16,59 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 };
 
 export default function MinhaContaPage() {
-  const { usuario, logout } = useAuth();
+  const { usuario, logout, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!usuario) { navigate('/auth'); return; }
-    api.get<Pedido[]>('/pedidos/meus')
+    if (authLoading) return;
+    if (!usuario) {
+      navigate('/auth');
+      return;
+    }
+    setLoading(true);
+    FirestoreService.getMeusPedidos()
       .then(setPedidos)
       .finally(() => setLoading(false));
-  }, [usuario]);
+  }, [usuario, authLoading, navigate]);
+
+  if (authLoading || (!usuario && loading)) {
+    return (
+      <div className="loading-page">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!usuario) {
+    return null;
+  }
 
   return (
     <main className="container minha-conta-page">
+      <PageBreadcrumb items={[{ label: 'Início', to: '/' }, { label: 'Minha conta' }]} />
       <div className="minha-conta-header">
-        <div>
-          <h1>Olá, {usuario?.nome?.split(' ')[0]}!</h1>
-          <p>Gerencie seus pedidos e dados</p>
+        <div className="minha-conta-header-texto">
+          <span className="minha-conta-badge"><User size={16} /> Área do cliente</span>
+          <h1>Olá, {usuario.nome.split(' ')[0]}!</h1>
+          <p>Acompanhe seus pedidos e o status de cada compra.</p>
         </div>
         <button className="btn-outline-sm" onClick={() => { logout(); navigate('/'); }}>
           <LogOut size={16} /> Sair
         </button>
       </div>
 
-      <h2><Package size={20} /> Meus Pedidos</h2>
+      <h2 className="minha-conta-h2"><Package size={20} strokeWidth={2} /> Meus pedidos</h2>
 
       {loading ? (
-        <div className="spinner" />
+        <div className="minha-conta-loading"><div className="spinner" /></div>
       ) : pedidos.length === 0 ? (
         <div className="sem-pedidos">
-          <Clock size={48} />
-          <p>Você ainda não fez nenhum pedido.</p>
-          <Link to="/" className="btn-primary">Explorar Produtos</Link>
+          <div className="sem-pedidos-ico"><Clock size={44} strokeWidth={1.25} /></div>
+          <h3 className="sem-pedidos-titulo">Nenhum pedido ainda</h3>
+          <p>Quando você finalizar uma compra, ela aparecerá aqui com o status atualizado.</p>
+          <Link to="/" className="btn-primary">Explorar produtos</Link>
         </div>
       ) : (
         <div className="pedidos-lista">

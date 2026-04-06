@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Check } from 'lucide-react';
+import { ShoppingCart, Check, Star } from 'lucide-react';
 import { Produto } from '../types';
 import { useCarrinho } from '../context/CarrinhoContext';
 import { imgUrl, formatarPreco } from '../utils/api';
@@ -37,6 +37,11 @@ export default function ProdutoCard({ produto }: Props) {
           alt={produto.nome}
           onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
         />
+        {produto.destaque === 1 && (
+          <span className="badge-destaque" title="Destaque">
+            <Star size={12} fill="currentColor" aria-hidden /> Destaque
+          </span>
+        )}
         {produto.estoque === 0 && <span className="badge-esgotado">Esgotado</span>}
       </Link>
       <div className="card-info">

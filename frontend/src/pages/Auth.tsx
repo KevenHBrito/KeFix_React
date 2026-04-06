@@ -16,8 +16,8 @@ export default function AuthPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (usuario) navigate('/');
-  }, [usuario]);
+    if (usuario) navigate(usuario.tipo === 'admin' ? '/admin' : '/');
+  }, [usuario, navigate]);
 
   function handle(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,7 +28,7 @@ export default function AuthPage() {
     setErro(''); setLoading(true);
     try {
       await login(form.email, form.senha);
-      navigate('/');
+      // Redirecionamento: useEffect envia admin → /admin e cliente → /
     } catch (err: any) {
       setErro(err.message);
     } finally {
@@ -111,6 +111,24 @@ export default function AuthPage() {
               </button>
             </form>
             <p className="auth-link">Já tem conta? <button onClick={() => setTab('login')}>Entrar</button></p>
+          </div>
+        )}
+
+        {import.meta.env.DEV && (
+          <div className="auth-admin-hint">
+            <p className="auth-admin-hint-title">Desenvolvimento — painel administrativo</p>
+            <p>
+              Rota: <Link to="/admin">/admin</Link> (exige login como administrador). No site, após entrar,
+              use o menu do usuário → <strong>Painel Admin</strong>.
+            </p>
+            <p>
+              Credenciais padrão (seed Prisma):{" "}
+              <code>admin@kefix.com</code> / <code>admin123</code>
+            </p>
+            <p className="auth-admin-hint-small">
+              Se não existir, rode na pasta <code>backend</code>:{" "}
+              <code>npx prisma db push</code> e <code>npm run db:seed</code>
+            </p>
           </div>
         )}
       </div>

@@ -65,9 +65,26 @@ export interface ItemPedido {
   preco_unitario: number;
 }
 
+export interface AdminUltimoPedidoResumo {
+  id: number;
+  nome_cliente: string;
+  total: number;
+  status: string;
+  criado_em: string;
+  itens_count: number;
+}
+
 export interface AdminStats {
   total_pedidos: number;
   total_receita: number;
   total_produtos: number;
   pedidos_pendentes: number;
+  total_categorias: number;
+  total_clientes: number;
+  pedidos_ultimos_7_dias: number;
+  receita_ultimos_30_dias: number;
+  produtos_estoque_baixo: number;
+  produtos_esgotados: number;
+  pedidos_por_status: Record<string, number>;
+  ultimos_pedidos: AdminUltimoPedidoResumo[];
 }

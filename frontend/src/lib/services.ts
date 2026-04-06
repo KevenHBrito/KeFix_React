@@ -1,97 +1,62 @@
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  query, 
-  where, 
-  limit, 
-  orderBy, 
-  addDoc, 
-  Timestamp,
-  updateDoc 
-} from 'firebase/firestore';
-import { db } from './firebase';
-import { Produto, Categoria, Pedido } from '../types';
+import { api } from "../utils/api";
+import type { AdminStats, Categoria, Pedido, Produto } from "../types";
 
+/** Camada de dados da loja — API REST KeFix (Express + sessão). */
 export const FirestoreService = {
-  // --- Categorias ---
   async getCategorias(): Promise<Categoria[]> {
-    const snap = await getDocs(query(collection(db, 'categorias'), orderBy('nome')));
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+    return api.get<Categoria[]>("/categorias");
   },
 
-  // --- Produtos ---
-  async getProdutos(filters: { categoria?: string, busca?: string, destaque?: boolean, limitCount?: number } = {}): Promise<Produto[]> {
-    let q = query(collection(db, 'produtos'), where('ativo', '==', true));
+  async getProdutos(
+    filters: {
+      categoria?: string;
+      busca?: string;
+      destaque?: boolean;
+      limitCount?: number;
+      adminTodos?: boolean;
+    } = {},
+  ): Promise<Produto[]> {
+    const q = new URLSearchParams();
+    if (filters.categoria) q.set("categoria", filters.categoria);
+    if (filters.destaque) q.set("destaque", "1");
+    if (filters.limitCount) q.set("limit", String(filters.limitCount));
+    if (filters.busca) q.set("q", filters.busca);
+    if (filters.adminTodos) q.set("todos", "1");
+    const qs = q.toString();
+    return api.get<Produto[]>(`/produtos${qs ? `?${qs}` : ""}`);
+  },
 
-    if (filters.categoria) {
-      q = query(q, where('categoria_slug', '==', filters.categoria));
+  async getProduto(id: string | number): Promise<Produto | null> {
+    try {
+      return await api.get<Produto>(`/produtos/${id}`);
+    } catch {
+      return null;
     }
-    if (filters.destaque) {
-      q = query(q, where('destaque', '==', true));
-    }
-    
-    // Sort by ID/Date desc
-    q = query(q, orderBy('criado_em', 'desc'));
-
-    if (filters.limitCount) {
-      q = query(q, limit(filters.limitCount));
-    }
-
-    const snap = await getDocs(q);
-    let results = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-
-    // Client-side search (Firestore doesn't support partial match well natively)
-    if (filters.busca) {
-      const b = filters.busca.toLowerCase();
-      results = results.filter((p: any) => 
-        p.nome.toLowerCase().includes(b) || p.descricao.toLowerCase().includes(b)
-      );
-    }
-
-    return results;
   },
 
-  async getProduto(id: string): Promise<Produto | null> {
-    const snap = await getDoc(doc(db, 'produtos', id));
-    return snap.exists() ? ({ id: snap.id, ...snap.data() } as any) : null;
+  async criarPedido(pedidoData: {
+    nome: string;
+    telefone: string;
+    endereco: string;
+    pagamento: string;
+    observacoes?: string;
+    usuario_id?: number | null;
+    total: number;
+    items: { produto_id: number; quantidade: number; nome?: string; preco?: number; imagem?: string }[];
+  }): Promise<number> {
+    const res = await api.post<{ id: number }>("/pedidos", pedidoData);
+    return res.id;
   },
 
-  // --- Pedidos ---
-  async criarPedido(pedidoData: any): Promise<string> {
-    const docRef = await addDoc(collection(db, 'pedidos'), {
-      ...pedidoData,
-      status: 'pendente',
-      criado_em: Timestamp.now()
-    });
-    return docRef.id;
+  async getMeusPedidos(): Promise<Pedido[]> {
+    return api.get<Pedido[]>("/pedidos/meus");
   },
 
-  async getMeusPedidos(usuarioId: string): Promise<Pedido[]> {
-    const q = query(
-      collection(db, 'pedidos'), 
-      where('usuario_id', '==', usuarioId), 
-      orderBy('criado_em', 'desc')
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+  async getAdminStats(): Promise<AdminStats> {
+    return api.get<AdminStats>("/admin/stats");
   },
 
-  // --- Admin ---
-  async updateProduto(id: string, data: any) {
-    await updateDoc(doc(db, 'produtos', id), data);
+  async getPedidoConfirmacao(id: number): Promise<Pedido> {
+    return api.get<Pedido>(`/pedidos/confirmacao/${id}`);
   },
-
-  async getAdminStats(): Promise<any> {
-    const prodsCount = (await getDocs(collection(db, 'produtos'))).size;
-    const pedidosCount = (await getDocs(collection(db, 'pedidos'))).size;
-    // ... simplificado para fins de migração
-    return {
-      total_pedidos: pedidosCount,
-      total_receita: 0, 
-      total_produtos: prodsCount,
-      pedidos_pendentes: 0
-    };
-  }
 };

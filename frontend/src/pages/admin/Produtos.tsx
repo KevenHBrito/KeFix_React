@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { Produto, Categoria } from '../../types';
+import { FirestoreService } from '../../lib/services';
 import { api, imgUrl, formatarPreco } from '../../utils/api';
 
 const FORM_INIT = { nome: '', descricao: '', preco: '', estoque: '', categoria_id: '', destaque: '0', imagem_atual: '' };
@@ -17,8 +18,8 @@ export default function AdminProdutos() {
 
   async function carregar() {
     const [prods, cats] = await Promise.all([
-      api.get<Produto[]>('/produtos'),
-      api.get<Categoria[]>('/categorias'),
+      FirestoreService.getProdutos({ adminTodos: true }),
+      FirestoreService.getCategorias(),
     ]);
     setProdutos(prods);
     setCategorias(cats);
