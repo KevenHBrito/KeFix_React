@@ -39,6 +39,12 @@ export interface Usuario {
   nome: string;
   email: string;
   tipo: 'cliente' | 'admin';
+  telefone?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  cep?: string;
 }
 
 export interface Pedido {
@@ -47,6 +53,11 @@ export interface Pedido {
   nome_cliente: string;
   telefone: string;
   endereco: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  cep?: string;
   forma_pagamento: 'pix' | 'cartao' | 'dinheiro';
   status: 'pendente' | 'confirmado' | 'enviado' | 'entregue' | 'cancelado';
   total: number;

@@ -957,3 +957,47 @@ textarea { resize: vertical; }
   .categoria-header { flex-direction: column; align-items: stretch; }
   .carrinho-vazio-busca { margin-left: 0; margin-top: 0.5rem; display: inline-block; width: 100%; text-align: center; }
 }
+
+/* ── Checkout Grid ── */
+.form-secao-titulo {
+  font-family: var(--fonte-titulo);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--cinza-200);
+  color: var(--cinza-800);
+}
+.checkout-grid-endereco {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+}
+.col-1 { grid-column: span 1; }
+.col-2 { grid-column: span 2; }
+.col-3 { grid-column: span 3; }
+.col-4 { grid-column: span 4; }
+
+.campo-checkbox {
+  margin: 1rem 0;
+}
+.campo-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.campo-checkbox input {
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .checkout-grid-endereco {
+    grid-template-columns: 1fr;
+  }
+  .col-1, .col-2, .col-3, .col-4 {
+    grid-column: span 1;
+  }
+}

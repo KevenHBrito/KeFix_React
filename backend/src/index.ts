@@ -251,6 +251,12 @@ app.post("/api/auth/login", async (req, res) => {
     nome: u.nome,
     email: u.email,
     tipo: u.tipo === "admin" ? "admin" : "cliente",
+    telefone: u.telefone,
+    rua: u.rua,
+    numero: u.numero,
+    bairro: u.bairro,
+    cidade: u.cidade,
+    cep: u.cep,
   };
   req.session.save(() => {
     res.json({ usuario: req.session.usuario });
@@ -434,10 +440,16 @@ app.post("/api/pedidos", async (req, res) => {
   const nome_cliente = String(req.body.nome ?? req.body.nome_cliente ?? "").trim();
   const telefone = String(req.body.telefone ?? "").trim();
   const endereco = String(req.body.endereco ?? "").trim();
+  const rua = String(req.body.rua ?? "").trim();
+  const numero = String(req.body.numero ?? "").trim();
+  const bairro = String(req.body.bairro ?? "").trim();
+  const cidade = String(req.body.cidade ?? "").trim();
+  const cep = String(req.body.cep ?? "").trim();
+  const salvar_endereco = !!req.body.salvar_endereco;
   const forma_pagamento = String(req.body.pagamento ?? req.body.forma_pagamento ?? "").trim();
   const observacoes = String(req.body.observacoes ?? "").trim();
 
-  if (!nome_cliente || !endereco) return erro(res, 400, "Preencha os campos obrigátórios.");
+  if (!nome_cliente || (!endereco && !rua)) return erro(res, 400, "Preencha os campos obrigatórios.");
   if (!FORMAS.includes(forma_pagamento as (typeof FORMAS)[number])) {
     return erro(res, 400, "Forma de pagamento inválida.");
   }
@@ -493,7 +505,12 @@ app.post("/api/pedidos", async (req, res) => {
           usuarioId,
           nomeCliente: nome_cliente,
           telefone,
-          endereco,
+          endereco: endereco || `${rua}, ${numero} - ${bairro}, ${cidade} - ${cep}`,
+          rua,
+          numero,
+          bairro,
+          cidade,
+          cep,
           formaPagamento: forma_pagamento,
           total,
           observacoes: observacoes || null,
@@ -507,6 +524,30 @@ app.post("/api/pedidos", async (req, res) => {
           },
         },
       });
+
+      if (usuarioId && salvar_endereco) {
+        await tx.user.update({
+          where: { id: usuarioId },
+          data: {
+            telefone,
+            rua,
+            numero,
+            bairro,
+            cidade,
+            cep,
+            endereco: endereco || `${rua}, ${numero} - ${bairro}, ${cidade} - ${cep}`
+          },
+        });
+        // Atualiza a sessão
+        if (req.session.usuario) {
+          req.session.usuario.telefone = telefone;
+          req.session.usuario.rua = rua;
+          req.session.usuario.numero = numero;
+          req.session.usuario.bairro = bairro;
+          req.session.usuario.cidade = cidade;
+          req.session.usuario.cep = cep;
+        }
+      }
 
       for (const r of resolved) {
         await tx.product.update({
@@ -535,6 +576,11 @@ function mapPedidoCompleto(p: {
   nomeCliente: string;
   telefone: string;
   endereco: string;
+  rua: string | null;
+  numero: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  cep: string | null;
   formaPagamento: string;
   status: string;
   total: number;
@@ -555,6 +601,11 @@ function mapPedidoCompleto(p: {
     nome_cliente: p.nomeCliente,
     telefone: p.telefone,
     endereco: p.endereco,
+    rua: p.rua,
+    numero: p.numero,
+    bairro: p.bairro,
+    cidade: p.cidade,
+    cep: p.cep,
     forma_pagamento: p.formaPagamento as "pix" | "cartao" | "dinheiro",
     status: p.status as "pendente" | "confirmado" | "enviado" | "entregue" | "cancelado",
     total: p.total,

@@ -8,15 +8,21 @@ import { imgUrl, formatarPreco } from '../utils/api';
 import { PageBreadcrumb } from '../components/PageBreadcrumb';
 
 export default function CarrinhoPage() {
-  const { carrinho, atualizarItem, removerItem } = useCarrinho();
+  const { carrinho, atualizarItem, removerItem, recarregar } = useCarrinho();
   const { usuario } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     nome: usuario?.nome || '',
-    telefone: '',
-    endereco: '',
+    telefone: usuario?.telefone || '',
+    rua: usuario?.rua || '',
+    numero: usuario?.numero || '',
+    bairro: usuario?.bairro || '',
+    cidade: usuario?.cidade || '',
+    cep: usuario?.cep || '',
+    endereco: '', // Fallback se precisar
     pagamento: 'pix',
     observacoes: '',
+    salvar_endereco: false,
   });
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -36,6 +42,7 @@ export default function CarrinhoPage() {
         total,
         items: carrinho.items,
       });
+      await recarregar(); // Esvazia o carrinho no estado global
       navigate(`/confirmacao/${pedido_id}`);
     } catch (err: any) {
       setErro(err.message);
@@ -125,6 +132,7 @@ export default function CarrinhoPage() {
           </div>
 
           <form onSubmit={handleFinalizar}>
+            <div className="form-secao-titulo">Informações de Contato</div>
             <div className="campo">
               <label>Nome completo *</label>
               <input
@@ -142,18 +150,71 @@ export default function CarrinhoPage() {
                 placeholder="(44) 99999-9999"
               />
             </div>
-            <div className="campo">
-              <label>Endereço completo *</label>
-              <textarea
-                value={form.endereco}
-                onChange={e => setForm({ ...form, endereco: e.target.value })}
-                placeholder="Rua, número, bairro, cidade, CEP"
-                required
-                rows={3}
-              />
+
+            <div className="form-secao-titulo">Endereço de Entrega</div>
+            <div className="checkout-grid-endereco">
+              <div className="campo col-3">
+                <label>Rua *</label>
+                <input
+                  value={form.rua}
+                  onChange={e => setForm({ ...form, rua: e.target.value })}
+                  placeholder="Rua..."
+                  required
+                />
+              </div>
+              <div className="campo col-1">
+                <label>Nº *</label>
+                <input
+                  value={form.numero}
+                  onChange={e => setForm({ ...form, numero: e.target.value })}
+                  placeholder="123"
+                  required
+                />
+              </div>
+              <div className="campo col-2">
+                <label>Bairro *</label>
+                <input
+                  value={form.bairro}
+                  onChange={e => setForm({ ...form, bairro: e.target.value })}
+                  placeholder="Bairro..."
+                  required
+                />
+              </div>
+              <div className="campo col-2">
+                <label>Cidade *</label>
+                <input
+                  value={form.cidade}
+                  onChange={e => setForm({ ...form, cidade: e.target.value })}
+                  placeholder="Cidade..."
+                  required
+                />
+              </div>
+              <div className="campo col-2">
+                <label>CEP *</label>
+                <input
+                  value={form.cep}
+                  onChange={e => setForm({ ...form, cep: e.target.value })}
+                  placeholder="00000-000"
+                  required
+                />
+              </div>
             </div>
+
+            {usuario && (
+              <div className="campo-checkbox">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.salvar_endereco}
+                    onChange={e => setForm({ ...form, salvar_endereco: e.target.checked })}
+                  />
+                  Salvar endereço para próxima compra
+                </label>
+              </div>
+            )}
+
+            <div className="form-secao-titulo">Forma de Pagamento</div>
             <div className="campo">
-              <label>Forma de pagamento *</label>
               <div className="pagamento-opcoes">
                 {[
                   { val: 'pix', label: '💠 PIX' },
@@ -173,6 +234,8 @@ export default function CarrinhoPage() {
                 ))}
               </div>
             </div>
+
+            <div className="form-secao-titulo">Outros</div>
             <div className="campo">
               <label>Observações</label>
               <textarea
