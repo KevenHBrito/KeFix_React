@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, Tag, LogOut, Smartphone } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, LogOut, Smartphone, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminLayout() {
@@ -18,6 +18,7 @@ export default function AdminLayout() {
     { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { to: '/admin/produtos', label: 'Produtos', icon: <Package size={18} /> },
     { to: '/admin/pedidos', label: 'Pedidos', icon: <ShoppingBag size={18} /> },
+    { to: '/admin/clientes', label: 'Clientes', icon: <Users size={18} /> },
     { to: '/admin/categorias', label: 'Categorias', icon: <Tag size={18} /> },
   ];
 

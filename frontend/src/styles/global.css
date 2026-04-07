@@ -456,21 +456,6 @@ textarea { resize: vertical; }
 .auth-link { text-align: center; font-size: .88rem; color: var(--cinza-600); margin-top: 1rem; }
 .auth-link button { color: var(--azul); font-weight: 600; background: none; border: none; cursor: pointer; font-size: inherit; }
 
-.auth-admin-hint {
-  margin-top: 1.75rem;
-  padding: 1rem 1.1rem;
-  background: var(--cinza-200);
-  border-radius: 8px;
-  font-size: 0.82rem;
-  color: var(--cinza-600);
-  line-height: 1.5;
-  border: 1px dashed var(--cinza-400);
-}
-.auth-admin-hint-title { font-weight: 600; color: var(--cinza-800); margin-bottom: 0.5rem; }
-.auth-admin-hint code { font-size: 0.8rem; background: var(--branco); padding: 0.1rem 0.35rem; border-radius: 4px; }
-.auth-admin-hint-small { margin-top: 0.5rem; font-size: 0.78rem; opacity: 0.9; }
-.auth-admin-hint a { color: var(--azul); text-decoration: underline; }
-
 /* ── Confirmação ── */
 .confirmacao-page {
   display: flex; flex-direction: column; align-items: center;

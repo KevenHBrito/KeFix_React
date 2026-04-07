@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 
@@ -114,23 +114,7 @@ export default function AuthPage() {
           </div>
         )}
 
-        {import.meta.env.DEV && (
-          <div className="auth-admin-hint">
-            <p className="auth-admin-hint-title">Desenvolvimento — painel administrativo</p>
-            <p>
-              Rota: <Link to="/admin">/admin</Link> (exige login como administrador). No site, após entrar,
-              use o menu do usuário → <strong>Painel Admin</strong>.
-            </p>
-            <p>
-              Credenciais padrão (seed Prisma):{" "}
-              <code>admin@kefix.com</code> / <code>admin123</code>
-            </p>
-            <p className="auth-admin-hint-small">
-              Se não existir, rode na pasta <code>backend</code>:{" "}
-              <code>npx prisma db push</code> e <code>npm run db:seed</code>
-            </p>
-          </div>
-        )}
+
       </div>
     </main>
   );

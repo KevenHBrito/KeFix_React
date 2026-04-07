@@ -1,3 +1,4 @@
+import "dotenv/config";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -75,6 +76,19 @@ function erro(res: express.Response, status: number, msg: string) {
   return res.status(status).json({ erro: msg });
 }
 
+function montarEndereco(
+  rua: string,
+  numero: string,
+  bairro: string,
+  cidade: string,
+  cep: string,
+) {
+  const linha1 = [rua, numero].filter(Boolean).join(', ');
+  const linha2 = [bairro, cidade].filter(Boolean).join(' - ');
+  const partes = [linha1, linha2, cep].filter(Boolean);
+  return partes.length > 0 ? partes.join(' | ') : null;
+}
+
 function mapCategoria(c: { id: number; nome: string; slug: string; icone: string }) {
   return {
     id: c.id,
@@ -112,6 +126,36 @@ function mapProduto(
     destaque: p.destaque,
     ativo: p.ativo,
     criado_em: p.createdAt.toISOString(),
+  };
+}
+
+function mapCliente(
+  u: {
+    id: number;
+    nome: string;
+    email: string;
+    telefone: string | null;
+    endereco: string | null;
+    rua: string | null;
+    numero: string | null;
+    bairro: string | null;
+    cidade: string | null;
+    cep: string | null;
+    createdAt: Date;
+  },
+) {
+  return {
+    id: u.id,
+    nome: u.nome,
+    email: u.email,
+    telefone: u.telefone,
+    endereco: u.endereco,
+    rua: u.rua,
+    numero: u.numero,
+    bairro: u.bairro,
+    cidade: u.cidade,
+    cep: u.cep,
+    criado_em: u.createdAt.toISOString(),
   };
 }
 
@@ -267,6 +311,168 @@ app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
   });
+});
+
+// ——— Clientes (Admin) ———
+app.get("/api/clientes", requireAdmin, async (_req, res) => {
+  const list = await prisma.user.findMany({
+    where: { tipo: "cliente" },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      telefone: true,
+      endereco: true,
+      rua: true,
+      numero: true,
+      bairro: true,
+      cidade: true,
+      cep: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(list.map(mapCliente));
+});
+
+app.post("/api/clientes", requireAdmin, async (req, res) => {
+  const nome = String(req.body.nome ?? "").trim();
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const telefone = String(req.body.telefone ?? "").trim();
+  const rua = String(req.body.rua ?? "").trim();
+  const numero = String(req.body.numero ?? "").trim();
+  const bairro = String(req.body.bairro ?? "").trim();
+  const cidade = String(req.body.cidade ?? "").trim();
+  const cep = String(req.body.cep ?? "").trim();
+  const senha = String(req.body.senha ?? "");
+
+  if (!nome || !email || !senha) {
+    return erro(res, 400, "Preencha nome, e-mail e senha.");
+  }
+  if (senha.length < 6) {
+    return erro(res, 400, "A senha deve ter pelo menos 6 caracteres.");
+  }
+
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) return erro(res, 400, "Este e-mail já está cadastrado.");
+
+  const hash = await bcrypt.hash(senha, 10);
+  const cliente = await prisma.user.create({
+    data: {
+      nome,
+      email,
+      telefone: telefone || null,
+      endereco: montarEndereco(rua, numero, bairro, cidade, cep),
+      rua: rua || null,
+      numero: numero || null,
+      bairro: bairro || null,
+      cidade: cidade || null,
+      cep: cep || null,
+      senha: hash,
+      tipo: "cliente",
+    },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      telefone: true,
+      endereco: true,
+      rua: true,
+      numero: true,
+      bairro: true,
+      cidade: true,
+      cep: true,
+      createdAt: true,
+    },
+  });
+  res.json(mapCliente(cliente));
+});
+
+app.put("/api/clientes/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const nome = String(req.body.nome ?? "").trim();
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const telefone = String(req.body.telefone ?? "").trim();
+  const rua = String(req.body.rua ?? "").trim();
+  const numero = String(req.body.numero ?? "").trim();
+  const bairro = String(req.body.bairro ?? "").trim();
+  const cidade = String(req.body.cidade ?? "").trim();
+  const cep = String(req.body.cep ?? "").trim();
+  const senha = String(req.body.senha ?? "");
+
+  if (!id || !nome || !email) {
+    return erro(res, 400, "Preencha nome e e-mail.");
+  }
+
+  const clienteAtual = await prisma.user.findFirst({ where: { id, tipo: "cliente" } });
+  if (!clienteAtual) return erro(res, 404, "Cliente não encontrado.");
+
+  const emailEmUso = await prisma.user.findFirst({ where: { email, NOT: { id } } });
+  if (emailEmUso) return erro(res, 400, "Este e-mail já está cadastrado.");
+
+  const data: {
+    nome: string;
+    email: string;
+    telefone: string | null;
+    endereco: string | null;
+    rua: string | null;
+    numero: string | null;
+    bairro: string | null;
+    cidade: string | null;
+    cep: string | null;
+    senha?: string;
+  } = {
+    nome,
+    email,
+    telefone: telefone || null,
+    endereco: montarEndereco(rua, numero, bairro, cidade, cep),
+    rua: rua || null,
+    numero: numero || null,
+    bairro: bairro || null,
+    cidade: cidade || null,
+    cep: cep || null,
+  };
+
+  if (senha) {
+    if (senha.length < 6) {
+      return erro(res, 400, "A senha deve ter pelo menos 6 caracteres.");
+    }
+    data.senha = await bcrypt.hash(senha, 10);
+  }
+
+  const cliente = await prisma.user.update({
+    where: { id },
+    data,
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      telefone: true,
+      endereco: true,
+      rua: true,
+      numero: true,
+      bairro: true,
+      cidade: true,
+      cep: true,
+      createdAt: true,
+    },
+  });
+  res.json(mapCliente(cliente));
+});
+
+app.delete("/api/clientes/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return erro(res, 400, "ID inválido.");
+
+  const cliente = await prisma.user.findFirst({ where: { id, tipo: "cliente" } });
+  if (!cliente) return erro(res, 404, "Cliente não encontrado.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.order.updateMany({ where: { usuarioId: id }, data: { usuarioId: null } });
+    await tx.user.delete({ where: { id } });
+  });
+
+  res.json({ ok: true });
 });
 
 // ——— Categorias ———

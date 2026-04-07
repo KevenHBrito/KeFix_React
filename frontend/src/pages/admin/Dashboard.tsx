@@ -172,6 +172,9 @@ export default function AdminDashboard() {
         <Link to="/admin/pedidos" className="admin-quick-link">
           <ShoppingBag size={18} /> Pedidos
         </Link>
+        <Link to="/admin/clientes" className="admin-quick-link">
+          <Users size={18} /> Clientes
+        </Link>
         <Link to="/admin/categorias" className="admin-quick-link">
           <Tag size={18} /> Categorias
         </Link>

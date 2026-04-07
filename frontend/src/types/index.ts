@@ -47,6 +47,20 @@ export interface Usuario {
   cep?: string;
 }
 
+export interface ClienteAdmin {
+  id: number;
+  nome: string;
+  email: string;
+  telefone?: string | null;
+  endereco?: string | null;
+  rua?: string | null;
+  numero?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  cep?: string | null;
+  criado_em: string;
+}
+
 export interface Pedido {
   id: number;
   usuario_id: number | null;

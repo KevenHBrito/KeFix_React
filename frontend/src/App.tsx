@@ -18,6 +18,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminProdutos from './pages/admin/Produtos';
 import AdminPedidos from './pages/admin/Pedidos';
 import AdminCategorias from './pages/admin/Categorias';
+import AdminClientes from './pages/admin/Clientes';
 
 function StoreLayout() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="produtos" element={<AdminProdutos />} />
               <Route path="pedidos" element={<AdminPedidos />} />
+              <Route path="clientes" element={<AdminClientes />} />
               <Route path="categorias" element={<AdminCategorias />} />
             </Route>
             <Route path="/*" element={<StoreLayout />} />

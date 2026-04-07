@@ -19,18 +19,21 @@ Criadas pelo **seed** do Prisma (`npm run db:seed` na pasta `backend`):
 
 ## Onde fica o banco de dados
 
-- **Motor:** SQLite (arquivo local).
-- **Caminho relativo** (definido em `backend/.env`):  
-  `DATABASE_URL="file:./dev.db"`
-- **Arquivo físico:** pasta **`backend`**, arquivo **`dev.db`**.
+- **Motor:** MySQL (XAMPP).
+- **Banco de dados:** `kefix`.
+- **String de conexão** (definida em `backend/.env`):  
+  `DATABASE_URL="mysql://root:@127.0.0.1:3306/kefix"`
 
-Exemplo de caminho absoluto no seu Mac:
+> Se o MySQL usar senha para o usuário `root`, substitua por `mysql://root:senha@127.0.0.1:3306/kefix`.
 
-` /Users/mazinijoaomarcelo/Desktop/kefix/backend/dev.db `
+O banco de dados deve ser criado no XAMPP (phpMyAdmin ou linha de comando) antes de rodar o Prisma.
 
-(Se o projeto estiver em outro lugar, será `.../seu-projeto/backend/dev.db`.)
+O esquema e as tabelas são gerados com:
 
-O arquivo só é criado após `npx prisma db push` (ou migrate) com esse `DATABASE_URL`.
+```bash
+npx prisma db push
+npm run db:seed
+```
 
 ## Se o admin não existir
 

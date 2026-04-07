@@ -34,7 +34,7 @@ export default function Home() {
         <div className="hero-content container">
           <div className="hero-texto">
             <span className="hero-badge">
-              <ShieldCheck size={16} /> Distribuidora Oficial em São Paulo
+              <ShieldCheck size={16} /> Distribuidora Oficial em Umuarama-PR
             </span>
             <h1>Qualidade que seu <br /><span className="destaque-texto">celular merece</span></h1>
             <p>A maior variedade de peças de reposição com garantia de procedência. Atacado e varejo com entrega expressa.</p>

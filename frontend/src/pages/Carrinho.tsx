@@ -134,7 +134,7 @@ export default function CarrinhoPage() {
           <form onSubmit={handleFinalizar}>
             <div className="form-secao-titulo">Informações de Contato</div>
             <div className="campo">
-              <label>Nome completo *</label>
+              <label>Nome completo</label>
               <input
                 value={form.nome}
                 onChange={e => setForm({ ...form, nome: e.target.value })}
@@ -154,7 +154,7 @@ export default function CarrinhoPage() {
             <div className="form-secao-titulo">Endereço de Entrega</div>
             <div className="checkout-grid-endereco">
               <div className="campo col-3">
-                <label>Rua *</label>
+                <label>Rua</label>
                 <input
                   value={form.rua}
                   onChange={e => setForm({ ...form, rua: e.target.value })}
@@ -163,7 +163,7 @@ export default function CarrinhoPage() {
                 />
               </div>
               <div className="campo col-1">
-                <label>Nº *</label>
+                <label>Nº</label>
                 <input
                   value={form.numero}
                   onChange={e => setForm({ ...form, numero: e.target.value })}
@@ -172,7 +172,7 @@ export default function CarrinhoPage() {
                 />
               </div>
               <div className="campo col-2">
-                <label>Bairro *</label>
+                <label>Bairro</label>
                 <input
                   value={form.bairro}
                   onChange={e => setForm({ ...form, bairro: e.target.value })}
@@ -181,7 +181,7 @@ export default function CarrinhoPage() {
                 />
               </div>
               <div className="campo col-2">
-                <label>Cidade *</label>
+                <label>Cidade</label>
                 <input
                   value={form.cidade}
                   onChange={e => setForm({ ...form, cidade: e.target.value })}
@@ -190,7 +190,7 @@ export default function CarrinhoPage() {
                 />
               </div>
               <div className="campo col-2">
-                <label>CEP *</label>
+                <label>CEP</label>
                 <input
                   value={form.cep}
                   onChange={e => setForm({ ...form, cep: e.target.value })}
