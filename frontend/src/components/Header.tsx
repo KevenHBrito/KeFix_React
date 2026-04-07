@@ -21,9 +21,7 @@ export default function Header() {
 
   return (
     <header className="header">
-      <div className="header-top">
-        <span>🚚 Frete grátis em compras acima de R$ 299 | Entrega para todo Brasil</span>
-      </div>
+
       <nav className="header-nav">
         <div className="container header-inner">
           <Link to="/" className="logo">Ke<span>Fix</span></Link>

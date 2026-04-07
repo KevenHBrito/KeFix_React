@@ -42,6 +42,8 @@ export const FirestoreService = {
     observacoes?: string;
     usuario_id?: number | null;
     total: number;
+    frete_valor?: number;
+    frete_tipo?: string;
     items: { produto_id: number; quantidade: number; nome?: string; preco?: number; imagem?: string }[];
   }): Promise<number> {
     const res = await api.post<{ id: number }>("/pedidos", pedidoData);

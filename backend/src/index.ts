@@ -654,6 +654,8 @@ app.post("/api/pedidos", async (req, res) => {
   const salvar_endereco = !!req.body.salvar_endereco;
   const forma_pagamento = String(req.body.pagamento ?? req.body.forma_pagamento ?? "").trim();
   const observacoes = String(req.body.observacoes ?? "").trim();
+  const frete_valor = parseFloat(req.body.frete_valor) || 0;
+  const frete_tipo = String(req.body.frete_tipo ?? "").trim();
 
   if (!nome_cliente || (!endereco && !rua)) return erro(res, 400, "Preencha os campos obrigatórios.");
   if (!FORMAS.includes(forma_pagamento as (typeof FORMAS)[number])) {
@@ -718,8 +720,11 @@ app.post("/api/pedidos", async (req, res) => {
           cidade,
           cep,
           formaPagamento: forma_pagamento,
-          total,
-          observacoes: observacoes || null,
+          total: total + frete_valor,
+          observacoes: [
+            frete_tipo ? `[Frete: ${frete_tipo} - R$ ${frete_valor.toFixed(2).replace(".", ",")}]` : "",
+            observacoes,
+          ].filter(Boolean).join(" | ") || null,
           status: "pendente",
           items: {
             create: resolved.map((r) => ({
@@ -960,6 +965,115 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
       itens_count: p.items.length,
     })),
   });
+});
+
+// ——— Frete ———
+const CEP_ORIGEM = (process.env.CEP_ORIGEM ?? "87013010").replace(/\D/g, "");
+
+function getZonaFrete(cepOrigem: string, cepDestino: string): 1 | 2 | 3 | 4 {
+  const o = parseInt(cepOrigem.substring(0, 2), 10);
+  const d = parseInt(cepDestino.substring(0, 2), 10);
+
+  function regiao(p: number): string {
+    if (p >= 1 && p <= 9) return "SP_CAP";
+    if (p >= 10 && p <= 19) return "SP_INT";
+    if (p >= 20 && p <= 28) return "RJ";
+    if (p === 29) return "ES";
+    if (p >= 30 && p <= 39) return "MG";
+    if (p >= 40 && p <= 48) return "BA";
+    if (p === 49) return "SE";
+    if (p >= 50 && p <= 56) return "PE";
+    if (p === 57) return "AL";
+    if (p === 58) return "PB";
+    if (p === 59) return "RN";
+    if (p >= 60 && p <= 63) return "CE";
+    if (p === 64) return "PI";
+    if (p === 65) return "MA";
+    if (p >= 66 && p <= 68) return "PA";
+    if (p === 69) return "AM";
+    if (p >= 70 && p <= 72) return "DF";
+    if (p >= 73 && p <= 76) return "GO";
+    if (p === 77) return "TO";
+    if (p === 78) return "MT";
+    if (p === 79) return "MS";
+    if (p >= 80 && p <= 87) return "PR";
+    if (p >= 88 && p <= 89) return "SC";
+    if (p >= 90 && p <= 99) return "RS";
+    return "?";
+  }
+
+  const ro = regiao(o);
+  const rd = regiao(d);
+
+  if (ro === rd) return 1;
+
+  const sul = new Set(["PR", "SC", "RS"]);
+  const sudeste = new Set(["SP_CAP", "SP_INT", "RJ", "ES", "MG"]);
+  const centroOeste = new Set(["MS", "MT", "GO", "DF", "TO"]);
+
+  function grupo(r: string): string {
+    if (sul.has(r)) return "sul";
+    if (sudeste.has(r)) return "sudeste";
+    if (centroOeste.has(r)) return "centro";
+    return "outro";
+  }
+
+  const go = grupo(ro);
+  const gd = grupo(rd);
+
+  if (
+    (go === "sul" && (gd === "sudeste" || gd === "centro")) ||
+    (gd === "sul" && (go === "sudeste" || go === "centro")) ||
+    (go === "sudeste" && gd === "centro") ||
+    (gd === "sudeste" && go === "centro")
+  ) return 2;
+
+  if (go !== "outro" && gd !== "outro") return 3;
+
+  return 4;
+}
+
+function calcularOpcoesFrete(zona: 1 | 2 | 3 | 4, pesoKg: number): {
+  pac: { preco: number; prazo: string };
+  sedex: { preco: number; prazo: string };
+} {
+  const pesoFaturado = Math.max(0.3, Math.ceil(pesoKg / 0.3) * 0.3);
+  const tabela = {
+    1: { pacBase: 11.00, pacKg: 2.20, sedexBase: 20.00, sedexKg: 4.50, pacDias: "4 a 6 dias úteis", sedexDias: "1 a 2 dias úteis" },
+    2: { pacBase: 14.50, pacKg: 2.80, sedexBase: 27.00, sedexKg: 5.80, pacDias: "6 a 9 dias úteis", sedexDias: "2 a 3 dias úteis" },
+    3: { pacBase: 18.00, pacKg: 3.60, sedexBase: 34.00, sedexKg: 7.50, pacDias: "8 a 12 dias úteis", sedexDias: "3 a 5 dias úteis" },
+    4: { pacBase: 22.50, pacKg: 4.80, sedexBase: 43.00, sedexKg: 10.00, pacDias: "10 a 15 dias úteis", sedexDias: "5 a 7 dias úteis" },
+  } as const;
+  const t = tabela[zona];
+  return {
+    pac: { preco: Math.round((t.pacBase + t.pacKg * pesoFaturado) * 100) / 100, prazo: t.pacDias },
+    sedex: { preco: Math.round((t.sedexBase + t.sedexKg * pesoFaturado) * 100) / 100, prazo: t.sedexDias },
+  };
+}
+
+app.get("/api/frete/calcular", async (req, res) => {
+  try {
+    const cep = String(req.query.cep ?? "").replace(/\D/g, "");
+    const peso = Math.max(0.3, parseFloat(String(req.query.peso ?? "1")) || 1);
+
+    if (cep.length !== 8) return erro(res, 400, "CEP inválido. Informe 8 dígitos.");
+
+    const viaCepRes = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!viaCepRes.ok) return erro(res, 502, "Erro ao consultar o CEP.");
+
+    const dados = await viaCepRes.json() as { erro?: boolean; localidade?: string; uf?: string };
+    if (dados.erro) return erro(res, 400, "CEP não encontrado.");
+
+    const zona = getZonaFrete(CEP_ORIGEM, cep);
+    const opcoes = calcularOpcoesFrete(zona, peso);
+
+    res.json({
+      destino: { localidade: dados.localidade ?? "", uf: dados.uf ?? "" },
+      ...opcoes,
+    });
+  } catch {
+    erro(res, 500, "Erro ao calcular frete.");
+  }
 });
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));

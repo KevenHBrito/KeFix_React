@@ -1,11 +1,28 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft, ShieldCheck, Truck, Search } from 'lucide-react';
 import { useCarrinho } from '../context/CarrinhoContext';
 import { useAuth } from '../context/AuthContext';
 import { FirestoreService } from '../lib/services';
 import { imgUrl, formatarPreco } from '../utils/api';
 import { PageBreadcrumb } from '../components/PageBreadcrumb';
+
+interface FreteOpcao {
+  preco: number;
+  prazo: string;
+}
+
+interface FreteResultado {
+  destino: { localidade: string; uf: string };
+  pac: FreteOpcao;
+  sedex: FreteOpcao;
+}
+
+interface FreteSelecionado {
+  tipo: 'PAC' | 'SEDEX';
+  preco: number;
+  prazo: string;
+}
 
 export default function CarrinhoPage() {
   const { carrinho, atualizarItem, removerItem, recarregar } = useCarrinho();
@@ -19,7 +36,7 @@ export default function CarrinhoPage() {
     bairro: usuario?.bairro || '',
     cidade: usuario?.cidade || '',
     cep: usuario?.cep || '',
-    endereco: '', // Fallback se precisar
+    endereco: '',
     pagamento: 'pix',
     observacoes: '',
     salvar_endereco: false,
@@ -27,22 +44,61 @@ export default function CarrinhoPage() {
   const [erro, setErro] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const total = parseFloat(carrinho.total);
-  const freteGratis = total >= 299;
+  const [cepFrete, setCepFrete] = useState(usuario?.cep || '');
+  const [freteLoading, setFreteLoading] = useState(false);
+  const [freteErro, setFreteErro] = useState('');
+  const [freteResultado, setFreteResultado] = useState<FreteResultado | null>(null);
+  const [freteSelecionado, setFreteSelecionado] = useState<FreteSelecionado | null>(null);
+
+  const totalProdutos = parseFloat(carrinho.total);
+  const totalComFrete = totalProdutos + (freteSelecionado?.preco ?? 0);
+
+  const pesoEstimado = carrinho.items.reduce((acc, item) => acc + item.quantidade * 0.5, 0);
+
+  async function calcularFrete() {
+    const cepLimpo = cepFrete.replace(/\D/g, '');
+    if (cepLimpo.length !== 8) {
+      setFreteErro('Informe um CEP válido com 8 dígitos.');
+      return;
+    }
+    setFreteLoading(true);
+    setFreteErro('');
+    setFreteResultado(null);
+    setFreteSelecionado(null);
+    try {
+      const res = await fetch(
+        `/api/frete/calcular?cep=${cepLimpo}&peso=${pesoEstimado.toFixed(2)}`,
+        { credentials: 'include' }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.erro || 'Erro ao calcular frete');
+      setFreteResultado(data as FreteResultado);
+    } catch (e: any) {
+      setFreteErro(e.message);
+    } finally {
+      setFreteLoading(false);
+    }
+  }
 
   async function handleFinalizar(e: React.FormEvent) {
     e.preventDefault();
     if (carrinho.items.length === 0) return;
+    if (!freteSelecionado) {
+      setErro('Calcule e selecione uma opção de frete antes de finalizar.');
+      return;
+    }
     setErro('');
     setEnviando(true);
     try {
       const pedido_id = await FirestoreService.criarPedido({
         ...form,
         usuario_id: usuario?.id || null,
-        total,
+        total: totalComFrete,
+        frete_valor: freteSelecionado.preco,
+        frete_tipo: `${freteSelecionado.tipo} (${freteSelecionado.prazo})`,
         items: carrinho.items,
       });
-      await recarregar(); // Esvazia o carrinho no estado global
+      await recarregar();
       navigate(`/confirmacao/${pedido_id}`);
     } catch (err: any) {
       setErro(err.message);
@@ -78,7 +134,7 @@ export default function CarrinhoPage() {
       </div>
       <div className="carrinho-trust-bar">
         <span><ShieldCheck size={16} /> Pagamento informado no pedido</span>
-        <span><Truck size={16} /> Frete combinado após confirmação</span>
+        <span><Truck size={16} /> Frete calculado via tabela regional</span>
       </div>
 
       <div className="carrinho-layout">
@@ -106,10 +162,6 @@ export default function CarrinhoPage() {
               </button>
             </div>
           ))}
-
-          {freteGratis && (
-            <div className="frete-gratis-aviso">✅ Parabéns! Você ganhou frete grátis!</div>
-          )}
         </div>
 
         {/* Checkout */}
@@ -119,15 +171,15 @@ export default function CarrinhoPage() {
           <div className="resumo-pedido">
             <div className="resumo-linha">
               <span>Subtotal</span>
-              <span>{formatarPreco(total)}</span>
+              <span>{formatarPreco(totalProdutos)}</span>
             </div>
             <div className="resumo-linha">
               <span>Frete</span>
-              <span>{freteGratis ? 'Grátis' : 'A calcular'}</span>
+              <span>{freteSelecionado ? formatarPreco(freteSelecionado.preco) : '—'}</span>
             </div>
             <div className="resumo-linha total">
               <strong>Total</strong>
-              <strong>{formatarPreco(total)}</strong>
+              <strong>{formatarPreco(totalComFrete)}</strong>
             </div>
           </div>
 
@@ -213,6 +265,57 @@ export default function CarrinhoPage() {
               </div>
             )}
 
+            {/* Calculadora de frete */}
+            <div className="form-secao-titulo"><Truck size={15} /> Calcular Frete</div>
+            <div className="frete-calc-row">
+              <input
+                className="frete-cep-input"
+                value={cepFrete}
+                onChange={e => { setCepFrete(e.target.value); setFreteResultado(null); setFreteSelecionado(null); }}
+                placeholder="Digite o CEP de entrega"
+                maxLength={9}
+              />
+              <button
+                type="button"
+                className="btn-frete-calc"
+                onClick={calcularFrete}
+                disabled={freteLoading}
+              >
+                {freteLoading ? '...' : <><Search size={14} /> Calcular</>}
+              </button>
+            </div>
+            {freteErro && <p className="frete-erro">{freteErro}</p>}
+            {freteResultado && (
+              <div className="frete-opcoes">
+                <p className="frete-destino">
+                  Entrega para: <strong>{freteResultado.destino.localidade} / {freteResultado.destino.uf}</strong>
+                </p>
+                {(['pac', 'sedex'] as const).map(tipo => {
+                  const opcao = freteResultado[tipo];
+                  const label = tipo === 'pac' ? 'PAC' : 'SEDEX';
+                  const selecionado = freteSelecionado?.tipo === label;
+                  return (
+                    <label
+                      key={tipo}
+                      className={`frete-opcao ${selecionado ? 'selecionado' : ''}`}
+                      onClick={() => setFreteSelecionado({ tipo: label, preco: opcao.preco, prazo: opcao.prazo })}
+                    >
+                      <input
+                        type="radio"
+                        name="frete_tipo"
+                        value={label}
+                        checked={selecionado}
+                        onChange={() => setFreteSelecionado({ tipo: label, preco: opcao.preco, prazo: opcao.prazo })}
+                      />
+                      <span className="frete-opcao-label">{label}</span>
+                      <span className="frete-opcao-prazo">{opcao.prazo}</span>
+                      <span className="frete-opcao-preco">{formatarPreco(opcao.preco)}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="form-secao-titulo">Forma de Pagamento</div>
             <div className="campo">
               <div className="pagamento-opcoes">
@@ -249,7 +352,7 @@ export default function CarrinhoPage() {
             {erro && <div className="alerta alerta-erro">{erro}</div>}
 
             <button type="submit" className="btn-primary btn-full" disabled={enviando}>
-              {enviando ? 'Processando...' : `Confirmar Pedido • ${formatarPreco(total)}`}
+              {enviando ? 'Processando...' : `Confirmar Pedido • ${formatarPreco(totalComFrete)}`}
             </button>
           </form>
         </div>

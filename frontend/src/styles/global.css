@@ -407,10 +407,33 @@ textarea { resize: vertical; }
 .item-subtotal { font-weight: 700; color: var(--azul); white-space: nowrap; }
 .btn-remover { color: var(--vermelho); padding: .3rem; border-radius: 4px; }
 .btn-remover:hover { background: #fde8ea; }
-.frete-gratis-aviso {
-  background: #d1e7dd; color: #0a5a31;
-  padding: .7rem 1rem; border-radius: 8px; font-weight: 500; font-size: .9rem;
+
+/* Calculadora de frete */
+.frete-calc-row { display: flex; gap: .5rem; margin-bottom: .5rem; }
+.frete-cep-input {
+  flex: 1; padding: .55rem .8rem; border: 1px solid var(--cinza-300);
+  border-radius: 8px; font-size: .9rem;
 }
+.btn-frete-calc {
+  display: flex; align-items: center; gap: .3rem;
+  padding: .55rem 1rem; background: var(--primaria); color: #fff;
+  border-radius: 8px; font-size: .85rem; font-weight: 600; white-space: nowrap;
+  cursor: pointer;
+}
+.btn-frete-calc:disabled { opacity: .6; cursor: default; }
+.frete-erro { font-size: .82rem; color: var(--vermelho); margin-bottom: .5rem; }
+.frete-destino { font-size: .82rem; color: var(--cinza-600); margin-bottom: .5rem; }
+.frete-opcoes { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+.frete-opcao {
+  display: flex; align-items: center; gap: .6rem; padding: .65rem .9rem;
+  border: 1px solid var(--cinza-300); border-radius: 8px; cursor: pointer;
+  font-size: .88rem; transition: border-color .15s, background .15s;
+}
+.frete-opcao input[type="radio"] { accent-color: var(--primaria); }
+.frete-opcao.selecionado { border-color: var(--primaria); background: #f0f6ff; }
+.frete-opcao-label { font-weight: 700; min-width: 48px; }
+.frete-opcao-prazo { color: var(--cinza-600); flex: 1; }
+.frete-opcao-preco { font-weight: 600; color: var(--primaria); }
 
 .checkout-box {
   background: var(--branco); border-radius: var(--radius);
