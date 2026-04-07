@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
+import { formatarTelefone } from '../utils/formatters';
 
 export default function AuthPage() {
   const [params] = useSearchParams();
@@ -20,7 +21,11 @@ export default function AuthPage() {
   }, [usuario, navigate]);
 
   function handle(e: React.ChangeEvent<HTMLInputElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    let valor = e.target.value;
+    if (e.target.name === 'telefone') {
+      valor = formatarTelefone(valor);
+    }
+    setForm({ ...form, [e.target.name]: valor });
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -96,7 +101,7 @@ export default function AuthPage() {
               </div>
               <div className="campo">
                 <label>Telefone</label>
-                <input type="tel" name="telefone" value={form.telefone} onChange={handle} placeholder="(44) 99999-9999" />
+                <input type="tel" name="telefone" value={form.telefone} onChange={handle} placeholder="(44) 99999-9999" maxLength={15} />
               </div>
               <div className="campo">
                 <label>Senha * (mín. 6 caracteres)</label>

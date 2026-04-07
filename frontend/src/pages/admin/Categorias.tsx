@@ -88,7 +88,7 @@ export default function AdminCategorias() {
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
               <div className="campo">
-                <label>Nome *</label>
+                <label>Nome</label>
                 <input
                   value={form.nome}
                   onChange={e => setForm({ ...form, nome: e.target.value, slug: gerarSlug(e.target.value) })}
@@ -96,7 +96,7 @@ export default function AdminCategorias() {
                 />
               </div>
               <div className="campo">
-                <label>Slug *</label>
+                <label>Slug</label>
                 <input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required />
               </div>
               <div className="campo">

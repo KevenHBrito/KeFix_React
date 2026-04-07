@@ -58,6 +58,8 @@ export default function AdminDashboard() {
   const ticketMedio =
     stats && stats.total_pedidos > 0 ? stats.total_receita / stats.total_pedidos : 0;
 
+  const limite100 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+
   const cardsPrincipais = stats
     ? [
         {
@@ -66,6 +68,9 @@ export default function AdminDashboard() {
           icon: <ShoppingBag size={26} strokeWidth={2} />,
           color: '#2563eb',
           hint: `${stats.pedidos_ultimos_7_dias} nos últimos 7 dias`,
+          badge: `${stats.pedidos_ultimos_7_dias} recentes`,
+          badgeTone: 'info',
+          progresso: limite100((stats.pedidos_ultimos_7_dias / Math.max(stats.total_pedidos, 1)) * 100),
         },
         {
           label: 'Receita total',
@@ -73,6 +78,9 @@ export default function AdminDashboard() {
           icon: <DollarSign size={26} strokeWidth={2} />,
           color: '#10b981',
           hint: `${formatarPreco(stats.receita_ultimos_30_dias)} nos últimos 30 dias (exc. cancelados)`,
+          badge: `${formatarPreco(stats.receita_ultimos_30_dias)} 30d`,
+          badgeTone: 'good',
+          progresso: limite100((stats.receita_ultimos_30_dias / Math.max(stats.total_receita, 1)) * 100),
         },
         {
           label: 'Produtos ativos',
@@ -83,6 +91,23 @@ export default function AdminDashboard() {
             stats.produtos_esgotados > 0 || stats.produtos_estoque_baixo > 0
               ? `${stats.produtos_esgotados} esgotados · ${stats.produtos_estoque_baixo} com estoque baixo (1–5)`
               : 'Catálogo em dia',
+          badge:
+            stats.produtos_esgotados > 0
+              ? `${stats.produtos_esgotados} esgotados`
+              : stats.produtos_estoque_baixo > 0
+                ? `${stats.produtos_estoque_baixo} em alerta`
+                : 'Estoque saudável',
+          badgeTone:
+            stats.produtos_esgotados > 0
+              ? 'danger'
+              : stats.produtos_estoque_baixo > 0
+                ? 'warn'
+                : 'good',
+          progresso: limite100(
+            ((stats.total_produtos - stats.produtos_estoque_baixo - stats.produtos_esgotados) /
+              Math.max(stats.total_produtos, 1)) *
+              100,
+          ),
         },
         {
           label: 'Pedidos pendentes',
@@ -90,6 +115,9 @@ export default function AdminDashboard() {
           icon: <AlertCircle size={26} strokeWidth={2} />,
           color: '#f59e0b',
           hint: 'Aguardando tratamento',
+          badge: `${stats.pedidos_pendentes} em fila`,
+          badgeTone: stats.pedidos_pendentes > 0 ? 'warn' : 'good',
+          progresso: limite100((stats.pedidos_pendentes / Math.max(stats.total_pedidos, 1)) * 100),
         },
       ]
     : [];
@@ -146,12 +174,19 @@ export default function AdminDashboard() {
 
   return (
     <div className="admin-page admin-dashboard">
-      <header className="admin-dashboard-header">
-        <div>
+      <header className="admin-dashboard-header admin-dashboard-hero">
+        <div className="admin-dashboard-hero-copy">
           <h1>Dashboard</h1>
           <p className="admin-dashboard-sub">
             Olá, <strong>{primeiroNome}</strong> — visão geral da loja KeFix.
           </p>
+          {stats && (
+            <div className="admin-hero-chips">
+              <span className="admin-hero-chip">Pedidos hoje: {stats.pedidos_ultimos_7_dias > 0 ? 'em movimento' : 'sem novidades'}</span>
+              <span className="admin-hero-chip">Receita 30d: {formatarPreco(stats.receita_ultimos_30_dias)}</span>
+              <span className="admin-hero-chip">Pendentes: {stats.pedidos_pendentes}</span>
+            </div>
+          )}
         </div>
         <div className="admin-dashboard-acoes">
           <button type="button" className="btn-outline-sm admin-dashboard-refresh" onClick={carregar} disabled={loading}>
@@ -207,9 +242,15 @@ export default function AdminDashboard() {
                     {c.icon}
                   </div>
                   <div className="stat-card-body">
+                    <div className="stat-kpi-top">
+                      <div className="stat-label stat-label-kpi">{c.label}</div>
+                      <span className={`stat-kpi-badge stat-kpi-badge-${c.badgeTone}`}>{c.badge}</span>
+                    </div>
                     <div className="stat-valor">{c.value}</div>
-                    <div className="stat-label">{c.label}</div>
                     <div className="stat-hint">{c.hint}</div>
+                    <div className="stat-kpi-meter" role="presentation">
+                      <div className="stat-kpi-meter-fill" style={{ width: `${c.progresso}%`, background: c.color }} />
+                    </div>
                   </div>
                 </div>
               ))}

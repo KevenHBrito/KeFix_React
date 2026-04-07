@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../../utils/api';
+import { formatarTelefone } from '../../utils/formatters';
 import type { ClienteAdmin } from '../../types';
 
 const FORM_INIT = {
@@ -200,7 +201,9 @@ export default function AdminClientes() {
                 <label>Telefone</label>
                 <input
                   value={form.telefone}
-                  onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, telefone: formatarTelefone(e.target.value) })}
+                  placeholder="(44) 99999-9999"
+                  maxLength={15}
                 />
               </div>
 

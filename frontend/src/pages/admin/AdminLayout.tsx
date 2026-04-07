@@ -7,6 +7,7 @@ export default function AdminLayout() {
   const { usuario, loading, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const primeiroNome = usuario?.nome?.split(' ')[0] ?? 'Admin';
 
   useEffect(() => {
     if (!loading && (!usuario || usuario.tipo !== 'admin')) {
@@ -27,9 +28,15 @@ export default function AdminLayout() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <div className="admin-brand">
-          <Smartphone size={22} />
-          <span>Ke<strong>Fix</strong> Admin</span>
+        <div className="admin-sidebar-top">
+          <div className="admin-brand">
+            <Smartphone size={22} />
+            <span>Ke<strong>Fix</strong> Admin</span>
+          </div>
+          <div className="admin-user-chip">
+            <span className="admin-user-chip-label">Sessao ativa</span>
+            <strong>{primeiroNome}</strong>
+          </div>
         </div>
         <nav className="admin-nav">
           {links.map(l => (
@@ -42,9 +49,11 @@ export default function AdminLayout() {
             </Link>
           ))}
         </nav>
-        <button className="admin-logout" onClick={() => { logout(); navigate('/'); }}>
-          <LogOut size={16} /> Sair
-        </button>
+        <div className="admin-sidebar-footer">
+          <button className="admin-logout" onClick={() => { logout(); navigate('/'); }}>
+            <LogOut size={16} /> Sair
+          </button>
+        </div>
       </aside>
       <main className="admin-main">
         <Outlet />

@@ -5,6 +5,7 @@ import { useCarrinho } from '../context/CarrinhoContext';
 import { useAuth } from '../context/AuthContext';
 import { FirestoreService } from '../lib/services';
 import { imgUrl, formatarPreco } from '../utils/api';
+import { formatarTelefone } from '../utils/formatters';
 import { PageBreadcrumb } from '../components/PageBreadcrumb';
 
 interface FreteOpcao {
@@ -198,8 +199,9 @@ export default function CarrinhoPage() {
               <label>Telefone</label>
               <input
                 value={form.telefone}
-                onChange={e => setForm({ ...form, telefone: e.target.value })}
+                onChange={e => setForm({ ...form, telefone: formatarTelefone(e.target.value) })}
                 placeholder="(44) 99999-9999"
+                maxLength={15}
               />
             </div>
 
