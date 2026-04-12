@@ -968,7 +968,7 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
 });
 
 // ——— Frete ———
-const CEP_ORIGEM = (process.env.CEP_ORIGEM ?? "87013010").replace(/\D/g, "");
+const CEP_ORIGEM = (process.env.CEP_ORIGEM ?? "87501000").replace(/\D/g, "");
 
 function getZonaFrete(cepOrigem: string, cepDestino: string): 1 | 2 | 3 | 4 {
   const o = parseInt(cepOrigem.substring(0, 2), 10);
