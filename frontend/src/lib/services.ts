@@ -1,5 +1,14 @@
 import { api } from "../utils/api";
-import type { AdminStats, Categoria, Pedido, Produto } from "../types";
+import type {
+  AdminStats,
+  Categoria,
+  ComprovanteVenda,
+  Despesa,
+  DespesaCategoria,
+  Pedido,
+  Produto,
+  RelatorioFinanceiro,
+} from "../types";
 
 /** Camada de dados da loja — API REST KeFix (Express + sessão). */
 export const FirestoreService = {
@@ -60,5 +69,60 @@ export const FirestoreService = {
 
   async getPedidoConfirmacao(id: number): Promise<Pedido> {
     return api.get<Pedido>(`/pedidos/confirmacao/${id}`);
+  },
+
+  async getComprovantePedido(id: number): Promise<ComprovanteVenda> {
+    return api.get<ComprovanteVenda>(`/pedidos/${id}/comprovante`);
+  },
+
+  async getDespesas(params: { inicio: string; fim: string; q?: string; categoria?: string }): Promise<Despesa[]> {
+    const query = new URLSearchParams({
+      inicio: params.inicio,
+      fim: params.fim,
+    });
+    if (params.q) query.set("q", params.q);
+    if (params.categoria) query.set("categoria", params.categoria);
+    return api.get<Despesa[]>(`/despesas?${query.toString()}`);
+  },
+
+  async getDespesaCategorias(): Promise<DespesaCategoria[]> {
+    return api.get<DespesaCategoria[]>("/despesas/categorias");
+  },
+
+  async criarDespesaCategoria(data: { nome: string }): Promise<DespesaCategoria> {
+    return api.post<DespesaCategoria>("/despesas/categorias", data);
+  },
+
+  async atualizarDespesaCategoria(id: number, data: { nome: string }): Promise<DespesaCategoria> {
+    return api.put<DespesaCategoria>(`/despesas/categorias/${id}`, data);
+  },
+
+  async excluirDespesaCategoria(id: number): Promise<{ ok: true }> {
+    return api.delete<{ ok: true }>(`/despesas/categorias/${id}`);
+  },
+
+  async criarDespesa(data: {
+    descricao: string;
+    categoria: string;
+    valor: number;
+    data_competencia: string;
+  }): Promise<Despesa> {
+    return api.post<Despesa>("/despesas", data);
+  },
+
+  async atualizarDespesa(
+    id: number,
+    data: { descricao: string; categoria: string; valor: number; data_competencia: string },
+  ): Promise<Despesa> {
+    return api.put<Despesa>(`/despesas/${id}`, data);
+  },
+
+  async excluirDespesa(id: number): Promise<{ ok: true }> {
+    return api.delete<{ ok: true }>(`/despesas/${id}`);
+  },
+
+  async getRelatorioFinanceiro(inicio: string, fim: string): Promise<RelatorioFinanceiro> {
+    const query = new URLSearchParams({ inicio, fim });
+    return api.get<RelatorioFinanceiro>(`/financeiro/relatorio?${query.toString()}`);
   },
 };

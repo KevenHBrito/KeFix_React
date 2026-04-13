@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, X } from 'lucide-react';
 import { Pedido } from '../../types';
 import { api, formatarPreco } from '../../utils/api';
@@ -66,6 +67,9 @@ export default function AdminPedidos() {
                 <td>{new Date(p.criado_em).toLocaleDateString('pt-BR')}</td>
                 <td>
                   <button className="btn-icon-sm" onClick={() => verDetalhe(p.id)}><Eye size={15} /></button>
+                  <Link className="btn-icon-sm" to={`/comprovante/${p.id}`} target="_blank" title="Abrir comprovante">
+                    PDF
+                  </Link>
                 </td>
               </tr>
             ))}

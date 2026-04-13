@@ -7,7 +7,7 @@ import cors from "cors";
 import session from "express-session";
 import multer from "multer";
 import bcrypt from "bcryptjs";
-import { prisma } from "./db.js";
+import { checkDbConnection, connectPrismaWithRetry, prisma } from "./db.js";
 
 const PORT = Number(process.env.PORT) || 3001;
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
@@ -162,6 +162,53 @@ function mapCliente(
     cep: u.cep,
     criado_em: u.createdAt.toISOString(),
   };
+}
+
+// Converte despesa do banco para formato de resposta da API.
+function mapDespesa(d: {
+  id: number;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  dataCompetencia: Date;
+  createdAt: Date;
+}) {
+  return {
+    id: d.id,
+    descricao: d.descricao,
+    categoria: d.categoria,
+    valor: d.valor,
+    data_competencia: d.dataCompetencia.toISOString(),
+    criado_em: d.createdAt.toISOString(),
+  };
+}
+
+// Converte categoria financeira para formato de resposta da API.
+function mapDespesaCategoria(c: { id: number; nome: string; createdAt: Date }) {
+  return {
+    id: c.id,
+    nome: c.nome,
+    criado_em: c.createdAt.toISOString(),
+  };
+}
+
+// Interpreta janela de periodo (inicio/fim) para filtros de relatorio.
+function parsePeriodo(inicioRaw?: string, fimRaw?: string) {
+  const fim = fimRaw ? new Date(fimRaw) : new Date();
+  const inicio = inicioRaw
+    ? new Date(inicioRaw)
+    : new Date(fim.getTime() - 29 * 24 * 60 * 60 * 1000);
+
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
+    return null;
+  }
+
+  const inicioDia = new Date(inicio);
+  inicioDia.setHours(0, 0, 0, 0);
+  const fimDia = new Date(fim);
+  fimDia.setHours(23, 59, 59, 999);
+
+  return { inicio: inicioDia, fim: fimDia };
 }
 
 // Calcula totais do carrinho salvo na sessao.
@@ -864,6 +911,23 @@ function mapPedidoCompleto(p: {
   };
 }
 
+// Busca pedido com itens e valida se o usuario atual pode visualizar o registro.
+async function buscarPedidoComAcesso(req: express.Request, id: number) {
+  const p = await prisma.order.findUnique({
+    where: { id },
+    include: { items: { include: { produto: true } } },
+  });
+  if (!p) return { pedido: null, erro: "Pedido não encontrado." };
+
+  const okGuest = req.session.ultimoPedidoId === id;
+  const okUser = !!req.session.usuario?.id && p.usuarioId === req.session.usuario.id;
+  const okAdmin = req.session.usuario?.tipo === "admin";
+  if (!okGuest && !okUser && !okAdmin) {
+    return { pedido: null, erro: "Acesso negado." };
+  }
+  return { pedido: p, erro: null };
+}
+
 app.get("/api/pedidos/meus", async (req, res) => {
   // Lista pedidos do usuario autenticado.
   if (!req.session.usuario) return erro(res, 401, "Não autenticado.");
@@ -878,18 +942,30 @@ app.get("/api/pedidos/meus", async (req, res) => {
 // Retorna pedido de confirmacao com controle de acesso por sessao.
 app.get("/api/pedidos/confirmacao/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const p = await prisma.order.findUnique({
-    where: { id },
-    include: { items: { include: { produto: true } } },
+  const { pedido, erro: msg } = await buscarPedidoComAcesso(req, id);
+  if (!pedido) {
+    return erro(res, msg === "Pedido não encontrado." ? 404 : 403, msg || "Acesso negado.");
+  }
+  res.json(mapPedidoCompleto(pedido));
+});
+
+// Dados completos para imprimir/gerar comprovante simples de venda.
+app.get("/api/pedidos/:id/comprovante", async (req, res) => {
+  const id = Number(req.params.id);
+  const { pedido, erro: msg } = await buscarPedidoComAcesso(req, id);
+  if (!pedido) {
+    return erro(res, msg === "Pedido não encontrado." ? 404 : 403, msg || "Acesso negado.");
+  }
+
+  res.json({
+    loja: {
+      nome: process.env.STORE_NAME || "KeFix",
+      telefone: process.env.STORE_PHONE || "(44) 0000-0000",
+      cidade: process.env.STORE_CITY || "Umuarama/PR",
+    },
+    pedido: mapPedidoCompleto(pedido),
+    emitido_em: new Date().toISOString(),
   });
-  if (!p) return erro(res, 404, "Pedido não encontrado.");
-
-  const okGuest = req.session.ultimoPedidoId === id;
-  const okUser = req.session.usuario?.id && p.usuarioId === req.session.usuario.id;
-  const okAdmin = req.session.usuario?.tipo === "admin";
-  if (!okGuest && !okUser && !okAdmin) return erro(res, 403, "Acesso negado.");
-
-  res.json(mapPedidoCompleto(p));
 });
 
 // Lista pedidos para administracao (com filtro de status opcional).
@@ -999,6 +1075,224 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
       status: p.status,
       criado_em: p.createdAt.toISOString(),
       itens_count: p.items.length,
+    })),
+  });
+});
+
+// ——— Despesas (Financeiro) ———
+// Lista categorias cadastradas para classificar despesas.
+app.get("/api/despesas/categorias", requireAdmin, async (_req, res) => {
+  const list = await prisma.expenseCategory.findMany({
+    orderBy: { nome: "asc" },
+  });
+  res.json(list.map(mapDespesaCategoria));
+});
+
+// Cadastra uma nova categoria financeira.
+app.post("/api/despesas/categorias", requireAdmin, async (req, res) => {
+  const nome = String(req.body.nome ?? "").trim();
+  if (!nome) return erro(res, 400, "Nome da categoria é obrigatório.");
+
+  try {
+    const categoria = await prisma.expenseCategory.create({
+      data: { nome },
+    });
+    res.json(mapDespesaCategoria(categoria));
+  } catch {
+    erro(res, 400, "Categoria de despesa já existe ou é inválida.");
+  }
+});
+
+// Edita categoria financeira e sincroniza despesas existentes.
+app.put("/api/despesas/categorias/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const nome = String(req.body.nome ?? "").trim();
+
+  if (!id || !nome) return erro(res, 400, "Dados da categoria inválidos.");
+
+  const atual = await prisma.expenseCategory.findUnique({ where: { id } });
+  if (!atual) return erro(res, 404, "Categoria de despesa não encontrada.");
+
+  try {
+    const categoria = await prisma.$transaction(async (tx) => {
+      const atualizada = await tx.expenseCategory.update({
+        where: { id },
+        data: { nome },
+      });
+
+      if (atual.nome !== nome) {
+        await tx.expense.updateMany({
+          where: { categoria: atual.nome },
+          data: { categoria: nome },
+        });
+      }
+
+      return atualizada;
+    });
+
+    res.json(mapDespesaCategoria(categoria));
+  } catch {
+    erro(res, 400, "Categoria de despesa já existe ou é inválida.");
+  }
+});
+
+// Exclui categoria financeira sem despesas vinculadas.
+app.delete("/api/despesas/categorias/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return erro(res, 400, "ID inválido.");
+
+  const categoria = await prisma.expenseCategory.findUnique({ where: { id } });
+  if (!categoria) return erro(res, 404, "Categoria de despesa não encontrada.");
+
+  const count = await prisma.expense.count({
+    where: { categoria: categoria.nome },
+  });
+  if (count > 0) {
+    return erro(res, 400, "Existem despesas vinculadas a esta categoria.");
+  }
+
+  await prisma.expenseCategory.delete({ where: { id } });
+  res.json({ ok: true });
+});
+
+// Lista despesas por periodo/categoria para controle interno.
+app.get("/api/despesas", requireAdmin, async (req, res) => {
+  const q = String(req.query.q ?? "").trim().toLowerCase();
+  const categoria = String(req.query.categoria ?? "").trim();
+  const periodo = parsePeriodo(
+    req.query.inicio ? String(req.query.inicio) : undefined,
+    req.query.fim ? String(req.query.fim) : undefined,
+  );
+  if (!periodo) return erro(res, 400, "Período inválido.");
+
+  const list = await prisma.expense.findMany({
+    where: {
+      dataCompetencia: { gte: periodo.inicio, lte: periodo.fim },
+      ...(categoria ? { categoria } : {}),
+      ...(q
+        ? {
+            OR: [
+              { descricao: { contains: q } },
+              { categoria: { contains: q } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ dataCompetencia: "desc" }, { id: "desc" }],
+  });
+  res.json(list.map(mapDespesa));
+});
+
+// Cadastra uma nova despesa administrativa.
+app.post("/api/despesas", requireAdmin, async (req, res) => {
+  const descricao = String(req.body.descricao ?? "").trim();
+  const categoria = String(req.body.categoria ?? "geral").trim() || "geral";
+  const valor = Number(req.body.valor);
+  const data_competencia = new Date(String(req.body.data_competencia ?? ""));
+
+  if (!descricao || Number.isNaN(valor) || valor <= 0 || Number.isNaN(data_competencia.getTime())) {
+    return erro(res, 400, "Dados de despesa inválidos.");
+  }
+
+  const d = await prisma.expense.create({
+    data: {
+      descricao,
+      categoria,
+      valor,
+      dataCompetencia: data_competencia,
+    },
+  });
+  res.json(mapDespesa(d));
+});
+
+// Edita uma despesa existente.
+app.put("/api/despesas/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  const descricao = String(req.body.descricao ?? "").trim();
+  const categoria = String(req.body.categoria ?? "geral").trim() || "geral";
+  const valor = Number(req.body.valor);
+  const data_competencia = new Date(String(req.body.data_competencia ?? ""));
+
+  if (!id || !descricao || Number.isNaN(valor) || valor <= 0 || Number.isNaN(data_competencia.getTime())) {
+    return erro(res, 400, "Dados de despesa inválidos.");
+  }
+
+  try {
+    const d = await prisma.expense.update({
+      where: { id },
+      data: {
+        descricao,
+        categoria,
+        valor,
+        dataCompetencia: data_competencia,
+      },
+    });
+    res.json(mapDespesa(d));
+  } catch {
+    erro(res, 404, "Despesa não encontrada.");
+  }
+});
+
+// Exclui despesa do controle interno.
+app.delete("/api/despesas/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return erro(res, 400, "ID inválido.");
+  await prisma.expense.delete({ where: { id } }).catch(() => null);
+  res.json({ ok: true });
+});
+
+// Consolida vendas e despesas em um resumo financeiro por periodo.
+app.get("/api/financeiro/relatorio", requireAdmin, async (req, res) => {
+  const periodo = parsePeriodo(
+    req.query.inicio ? String(req.query.inicio) : undefined,
+    req.query.fim ? String(req.query.fim) : undefined,
+  );
+  if (!periodo) return erro(res, 400, "Período inválido.");
+
+  const [vendasAgg, totalPedidos, despesasAgg, despesasPorCategoria] = await Promise.all([
+    prisma.order.aggregate({
+      where: {
+        createdAt: { gte: periodo.inicio, lte: periodo.fim },
+        status: { not: "cancelado" },
+      },
+      _sum: { total: true },
+    }),
+    prisma.order.count({
+      where: {
+        createdAt: { gte: periodo.inicio, lte: periodo.fim },
+        status: { not: "cancelado" },
+      },
+    }),
+    prisma.expense.aggregate({
+      where: { dataCompetencia: { gte: periodo.inicio, lte: periodo.fim } },
+      _sum: { valor: true },
+    }),
+    prisma.expense.groupBy({
+      by: ["categoria"],
+      where: { dataCompetencia: { gte: periodo.inicio, lte: periodo.fim } },
+      _sum: { valor: true },
+      orderBy: { categoria: "asc" },
+    }),
+  ]);
+
+  const total_vendas = vendasAgg._sum.total ?? 0;
+  const total_despesas = despesasAgg._sum.valor ?? 0;
+  const saldo = total_vendas - total_despesas;
+  const ticket_medio = totalPedidos > 0 ? total_vendas / totalPedidos : 0;
+
+  res.json({
+    periodo: {
+      inicio: periodo.inicio.toISOString(),
+      fim: periodo.fim.toISOString(),
+    },
+    total_vendas,
+    total_despesas,
+    saldo,
+    total_pedidos: totalPedidos,
+    ticket_medio,
+    despesas_por_categoria: despesasPorCategoria.map((d) => ({
+      categoria: d.categoria,
+      total: d._sum.valor ?? 0,
     })),
   });
 });
@@ -1115,15 +1409,37 @@ app.get("/api/frete/calcular", async (req, res) => {
   }
 });
 
-// Endpoint simples para healthcheck.
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// Healthcheck real: valida API e conectividade atual com o banco.
+app.get("/api/health", async (_req, res) => {
+  const db = await checkDbConnection();
+  if (!db) {
+    return res.status(503).json({ ok: false, db: false, erro: "Banco indisponível." });
+  }
+  res.json({ ok: true, db: true });
+});
 
 // Tratamento global de erros nao capturados nas rotas.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Se o banco cair, retornamos 503 para o frontend diferenciar indisponibilidade temporaria.
+  if (err.message.includes("P1001") || err.message.includes("Can't reach database server")) {
+    return res.status(503).json({ erro: "Banco de dados indisponível no momento." });
+  }
   console.error(err);
   res.status(500).json({ erro: err.message || "Erro interno" });
 });
 
-app.listen(PORT, () => {
-  console.log(`KeFix API http://localhost:${PORT}`);
+async function bootstrap() {
+  const conectado = await connectPrismaWithRetry();
+  if (!conectado) {
+    console.error("[db] Não foi possível conectar após várias tentativas. API iniciará mesmo assim.");
+  }
+
+  app.listen(PORT, () => {
+    console.log(`KeFix API http://localhost:${PORT}`);
+  });
+}
+
+bootstrap().catch((err) => {
+  console.error("Falha ao iniciar servidor", err);
+  process.exit(1);
 });

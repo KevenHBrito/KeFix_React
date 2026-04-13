@@ -1,9 +1,7 @@
-// Configura a geração do cliente Prisma usado no backend.
 generator client {
   provider = "prisma-client-js"
 }
 
-// Define conexão com MySQL via variável de ambiente.
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -22,8 +20,8 @@ model User {
   cidade    String?
   cep       String?
   tipo      String   @default("cliente")
-  pedidos   Order[]
   createdAt DateTime @default(now()) @map("criado_em")
+  pedidos   Order[]
 
   @@map("usuarios")
 }
@@ -39,53 +37,76 @@ model Category {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  categoriaId Int      @map("categoria_id")
-  categoria   Category @relation(fields: [categoriaId], references: [id])
+  id          Int         @id @default(autoincrement())
+  categoriaId Int         @map("categoria_id")
   nome        String
-  slug        String   @unique
-  descricao   String   @default("")
+  slug        String      @unique
+  descricao   String      @default("")
   preco       Float
-  estoque     Int      @default(0)
-  imagem      String   @default("sem-imagem.png")
-  destaque    Int      @default(0)
-  ativo       Int      @default(1)
-  createdAt   DateTime @default(now()) @map("criado_em")
+  estoque     Int         @default(0)
+  imagem      String      @default("sem-imagem.png")
+  destaque    Int         @default(0)
+  ativo       Int         @default(1)
+  createdAt   DateTime    @default(now()) @map("criado_em")
   items       OrderItem[]
+  categoria   Category    @relation(fields: [categoriaId], references: [id])
 
+  @@index([categoriaId], map: "produtos_categoria_id_fkey")
   @@map("produtos")
 }
 
 model Order {
-  id               Int         @id @default(autoincrement())
-  usuarioId        Int?        @map("usuario_id")
-  usuario          User?       @relation(fields: [usuarioId], references: [id])
-  nomeCliente      String      @map("nome_cliente")
-  telefone         String
-  endereco         String
-  rua              String?
-  numero           String?
-  bairro           String?
-  cidade           String?
-  cep              String?
-  formaPagamento   String      @map("forma_pagamento")
-  status           String      @default("pendente")
-  total            Float
-  observacoes      String?
-  createdAt        DateTime    @default(now()) @map("criado_em")
-  items            OrderItem[]
+  id             Int         @id @default(autoincrement())
+  usuarioId      Int?        @map("usuario_id")
+  nomeCliente    String      @map("nome_cliente")
+  telefone       String
+  endereco       String
+  rua            String?
+  numero         String?
+  bairro         String?
+  cidade         String?
+  cep            String?
+  formaPagamento String      @map("forma_pagamento")
+  status         String      @default("pendente")
+  total          Float
+  observacoes    String?
+  createdAt      DateTime    @default(now()) @map("criado_em")
+  items          OrderItem[]
+  usuario        User?       @relation(fields: [usuarioId], references: [id])
 
+  @@index([usuarioId], map: "pedidos_usuario_id_fkey")
   @@map("pedidos")
 }
 
 model OrderItem {
-  id             Int     @id @default(autoincrement())
-  pedidoId       Int     @map("pedido_id")
-  pedido         Order   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  produtoId      Int     @map("produto_id")
-  produto        Product @relation(fields: [produtoId], references: [id])
-  quantidade     Int
-  precoUnitario  Float   @map("preco_unitario")
+  id            Int     @id @default(autoincrement())
+  pedidoId      Int     @map("pedido_id")
+  produtoId     Int     @map("produto_id")
+  quantidade    Int
+  precoUnitario Float   @map("preco_unitario")
+  pedido        Order   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto       Product @relation(fields: [produtoId], references: [id])
 
+  @@index([pedidoId], map: "itens_pedido_pedido_id_fkey")
+  @@index([produtoId], map: "itens_pedido_produto_id_fkey")
   @@map("itens_pedido")
+}
+
+model Expense {
+  id              Int      @id @default(autoincrement())
+  descricao       String
+  categoria       String   @default("geral")
+  valor           Float
+  dataCompetencia DateTime @map("data_competencia")
+  createdAt       DateTime @default(now()) @map("criado_em")
+
+  @@map("despesas")
+}
+
+model ExpenseCategory {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  createdAt DateTime @default(now()) @map("criado_em")
+
+  @@map("categorias_despesa")
 }

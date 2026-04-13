@@ -10,6 +10,7 @@ import CategoriaPage from './pages/Categoria';
 import BuscaPage from './pages/Busca';
 import CarrinhoPage from './pages/Carrinho';
 import ConfirmacaoPage from './pages/Confirmacao';
+import ComprovantePage from './pages/Comprovante';
 import AuthPage from './pages/Auth';
 import MinhaContaPage from './pages/MinhaConta';
 
@@ -19,6 +20,7 @@ import AdminProdutos from './pages/admin/Produtos';
 import AdminPedidos from './pages/admin/Pedidos';
 import AdminCategorias from './pages/admin/Categorias';
 import AdminClientes from './pages/admin/Clientes';
+import AdminFinanceiro from './pages/admin/Financeiro';
 
 function StoreLayout() {
   return (
@@ -32,6 +34,7 @@ function StoreLayout() {
         <Route path="/busca" element={<BuscaPage />} />
         <Route path="/carrinho" element={<CarrinhoPage />} />
         <Route path="/confirmacao/:id" element={<ConfirmacaoPage />} />
+        <Route path="/comprovante/:id" element={<ComprovantePage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/minha-conta" element={<MinhaContaPage />} />
       </Routes>
@@ -52,6 +55,7 @@ export default function App() {
               <Route path="pedidos" element={<AdminPedidos />} />
               <Route path="clientes" element={<AdminClientes />} />
               <Route path="categorias" element={<AdminCategorias />} />
+              <Route path="financeiro" element={<AdminFinanceiro />} />
             </Route>
             <Route path="/*" element={<StoreLayout />} />
           </Routes>

@@ -53,6 +53,7 @@ export default function ConfirmacaoPage() {
 
         <div className="confirmacao-acoes">
           <Link to="/" className="btn-primary">Continuar Comprando</Link>
+          <Link to={`/comprovante/${id}`} className="btn-outline" target="_blank">Imprimir comprovante</Link>
           <Link to="/minha-conta" className="btn-outline">Ver Meus Pedidos</Link>
         </div>
       </div>

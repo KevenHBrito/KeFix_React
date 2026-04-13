@@ -59,8 +59,24 @@ async function main() {
     }),
   };
 
+  const categoriasDespesa = [
+    "geral",
+    "fornecedores",
+    "operacional",
+    "marketing",
+    "impostos",
+  ];
+
+  for (const nome of categoriasDespesa) {
+    await prisma.expenseCategory.upsert({
+      where: { nome },
+      create: { nome },
+      update: {},
+    });
+  }
+
   console.log(
-    `Seed OK — ${Object.keys(cats).length} categorias — admin: admin@kefix.com / admin123`,
+    `Seed OK — ${Object.keys(cats).length} categorias de produtos — ${categoriasDespesa.length} categorias financeiras — admin: admin@kefix.com / admin123`,
   );
 }
 

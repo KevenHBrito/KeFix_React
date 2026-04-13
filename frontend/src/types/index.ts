@@ -99,6 +99,47 @@ export interface AdminUltimoPedidoResumo {
   itens_count: number;
 }
 
+export interface Despesa {
+  id: number;
+  descricao: string;
+  categoria: string;
+  valor: number;
+  data_competencia: string;
+  criado_em: string;
+}
+
+export interface DespesaCategoria {
+  id: number;
+  nome: string;
+  criado_em: string;
+}
+
+export interface RelatorioFinanceiro {
+  periodo: {
+    inicio: string;
+    fim: string;
+  };
+  total_vendas: number;
+  total_despesas: number;
+  saldo: number;
+  total_pedidos: number;
+  ticket_medio: number;
+  despesas_por_categoria: Array<{
+    categoria: string;
+    total: number;
+  }>;
+}
+
+export interface ComprovanteVenda {
+  loja: {
+    nome: string;
+    telefone: string;
+    cidade: string;
+  };
+  pedido: Pedido;
+  emitido_em: string;
+}
+
 export interface AdminStats {
   total_pedidos: number;
   total_receita: number;

@@ -86,6 +86,31 @@ CREATE TABLE IF NOT EXISTS `itens_pedido` (
   CONSTRAINT `itens_pedido_produto_id_fkey` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Categorias reutilizaveis do modulo financeiro.
+CREATE TABLE IF NOT EXISTS `categorias_despesa` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome` varchar(255) NOT NULL,
+  `criado_em` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `categorias_despesa_nome_key` (`nome`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Despesas administrativas usadas no controle financeiro.
+CREATE TABLE IF NOT EXISTS `despesas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `descricao` varchar(255) NOT NULL,
+  `categoria` varchar(255) NOT NULL DEFAULT 'geral',
+  `valor` decimal(10,2) NOT NULL,
+  `data_competencia` datetime NOT NULL,
+  `criado_em` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `despesas_categoria_idx` (`categoria`),
+  KEY `despesas_data_competencia_idx` (`data_competencia`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Opcional: insere usuário admin inicial, caso queira testar.
 INSERT IGNORE INTO `usuarios` (`nome`, `email`, `senha`, `tipo`, `criado_em`)
 VALUES ('Admin KeFix', 'admin@kefix.com', '$2a$10$wNT/XBMhDUivuYhL.cnaE.OMHAlbELD.skjHETxYUotG0MHDf/Q1y', 'admin', NOW());
+
+INSERT IGNORE INTO `categorias_despesa` (`nome`, `criado_em`)
+VALUES ('geral', NOW());

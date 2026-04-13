@@ -1135,3 +1135,206 @@ textarea { resize: vertical; }
     grid-column: span 1;
   }
 }
+
+/* ── Financeiro ── */
+.financeiro-filtros {
+  display: grid;
+  grid-template-columns: 180px 180px minmax(200px, 1fr) auto;
+  gap: .8rem;
+  margin-bottom: 1rem;
+  align-items: end;
+}
+.financeiro-busca { margin-bottom: 0; }
+.financeiro-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .8rem;
+  margin-bottom: 1rem;
+}
+.financeiro-cadastro-categorias {
+  margin-bottom: 1rem;
+  background: var(--branco);
+  border-radius: var(--radius);
+  box-shadow: var(--sombra);
+  padding: 1rem;
+}
+.financeiro-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: .85rem;
+}
+.financeiro-section-header h2 {
+  font-size: 1rem;
+  margin-bottom: .25rem;
+}
+.financeiro-section-header p {
+  color: var(--cinza-600);
+  font-size: .92rem;
+}
+.financeiro-categorias {
+  margin-top: 1rem;
+  background: var(--branco);
+  border-radius: var(--radius);
+  box-shadow: var(--sombra);
+  padding: 1rem;
+}
+.financeiro-categorias h2 {
+  font-size: 1rem;
+  margin-bottom: .7rem;
+}
+.financeiro-categorias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .6rem;
+}
+.financeiro-categoria-item {
+  border: 1px solid var(--cinza-200);
+  border-radius: 8px;
+  padding: .65rem .75rem;
+  display: flex;
+  justify-content: space-between;
+}
+.financeiro-categorias-grid-admin {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.financeiro-categoria-admin-item {
+  align-items: center;
+  gap: .75rem;
+}
+.financeiro-categoria-admin-item strong {
+  display: block;
+  margin-bottom: .2rem;
+}
+.financeiro-categoria-admin-item span {
+  color: var(--cinza-600);
+  font-size: .86rem;
+}
+.financeiro-categoria-acoes {
+  display: flex;
+  gap: .45rem;
+}
+.financeiro-categoria-campo {
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+.financeiro-categoria-campo input {
+  flex: 1;
+}
+.text-danger { color: var(--vermelho); }
+
+@media (max-width: 720px) {
+  .financeiro-filtros {
+    grid-template-columns: 1fr;
+  }
+  .financeiro-section-header,
+  .financeiro-categoria-campo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ── Comprovante ── */
+.comprovante-page {
+  max-width: 820px;
+  padding-top: 1.25rem;
+  padding-bottom: 2rem;
+}
+.comprovante-actions {
+  display: flex;
+  gap: .6rem;
+  margin-bottom: 1rem;
+}
+.comprovante-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+  padding: 1.2rem;
+}
+.comprovante-header {
+  text-align: center;
+  border-bottom: 1px dashed #94a3b8;
+  padding-bottom: .8rem;
+  margin-bottom: .8rem;
+}
+.comprovante-header h1 {
+  font-family: var(--fonte-titulo);
+  font-size: 1.8rem;
+}
+.comprovante-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: .88rem;
+  color: var(--cinza-600);
+  margin-bottom: .8rem;
+}
+.comprovante-bloco {
+  margin-bottom: .9rem;
+}
+.comprovante-bloco h2 {
+  font-size: .95rem;
+  margin-bottom: .35rem;
+}
+.comprovante-tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+.comprovante-tabela th,
+.comprovante-tabela td {
+  text-align: left;
+  padding: .45rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: .88rem;
+}
+.comprovante-rodape {
+  margin-top: .8rem;
+  padding-top: .8rem;
+  border-top: 1px dashed #94a3b8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media print {
+  .no-print,
+  .header,
+  .footer,
+  .page-breadcrumb {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .comprovante-page {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .comprovante-card {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .financeiro-filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .comprovante-actions {
+    flex-direction: column;
+  }
+
+  .comprovante-meta,
+  .comprovante-rodape {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .3rem;
+  }
+}
