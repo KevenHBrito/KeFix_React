@@ -416,10 +416,11 @@ textarea { resize: vertical; }
 }
 .btn-frete-calc {
   display: flex; align-items: center; gap: .3rem;
-  padding: .55rem 1rem; background: var(--primaria); color: #fff;
+  padding: .55rem 1rem; background: var(--verde); color: #fff;
   border-radius: 8px; font-size: .85rem; font-weight: 600; white-space: nowrap;
-  cursor: pointer;
+  cursor: pointer; transition: filter .15s ease;
 }
+.btn-frete-calc:not(:disabled):hover { filter: brightness(.92); }
 .btn-frete-calc:disabled { opacity: .6; cursor: default; }
 .frete-erro { font-size: .82rem; color: var(--vermelho); margin-bottom: .5rem; }
 .frete-destino { font-size: .82rem; color: var(--cinza-600); margin-bottom: .5rem; }
@@ -427,12 +428,13 @@ textarea { resize: vertical; }
 .frete-opcao {
   display: flex; align-items: center; gap: .6rem; padding: .65rem .9rem;
   border: 1px solid var(--cinza-300); border-radius: 8px; cursor: pointer;
+  justify-content: center; text-align: center;
   font-size: .88rem; transition: border-color .15s, background .15s;
 }
 .frete-opcao input[type="radio"] { accent-color: var(--primaria); }
 .frete-opcao.selecionado { border-color: var(--primaria); background: #f0f6ff; }
-.frete-opcao-label { font-weight: 700; min-width: 48px; }
-.frete-opcao-prazo { color: var(--cinza-600); flex: 1; }
+.frete-opcao-label { font-weight: 700; }
+.frete-opcao-prazo { color: var(--cinza-600); }
 .frete-opcao-preco { font-weight: 600; color: var(--primaria); }
 
 .checkout-box {

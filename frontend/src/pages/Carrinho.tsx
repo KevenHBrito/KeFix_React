@@ -50,6 +50,7 @@ export default function CarrinhoPage() {
   const [freteErro, setFreteErro] = useState('');
   const [freteResultado, setFreteResultado] = useState<FreteResultado | null>(null);
   const [freteSelecionado, setFreteSelecionado] = useState<FreteSelecionado | null>(null);
+  const cepFreteValido = cepFrete.replace(/\D/g, '').length === 8;
 
   const totalProdutos = parseFloat(carrinho.total);
   const totalComFrete = totalProdutos + (freteSelecionado?.preco ?? 0);
@@ -281,9 +282,9 @@ export default function CarrinhoPage() {
                 type="button"
                 className="btn-frete-calc"
                 onClick={calcularFrete}
-                disabled={freteLoading}
+                disabled={freteLoading || !cepFreteValido}
               >
-                {freteLoading ? '...' : <><Search size={14} /> Calcular</>}
+                {freteLoading ? '...' : <><Search size={14} /> Calcular frete</>}
               </button>
             </div>
             {freteErro && <p className="frete-erro">{freteErro}</p>}
