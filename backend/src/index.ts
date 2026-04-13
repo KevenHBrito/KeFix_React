@@ -72,10 +72,12 @@ function gerarSlug(texto: string) {
     .replace(/^-|-$/g, "");
 }
 
+// Padroniza respostas de erro da API.
 function erro(res: express.Response, status: number, msg: string) {
   return res.status(status).json({ erro: msg });
 }
 
+// Monta endereco de exibicao a partir dos campos separados.
 function montarEndereco(
   rua: string,
   numero: string,
@@ -89,6 +91,7 @@ function montarEndereco(
   return partes.length > 0 ? partes.join(' | ') : null;
 }
 
+// Converte categoria do banco para formato de resposta da API.
 function mapCategoria(c: { id: number; nome: string; slug: string; icone: string }) {
   return {
     id: c.id,
@@ -98,6 +101,7 @@ function mapCategoria(c: { id: number; nome: string; slug: string; icone: string
   };
 }
 
+// Converte produto do banco para o shape usado no frontend.
 function mapProduto(
   p: {
     id: number;
@@ -129,6 +133,7 @@ function mapProduto(
   };
 }
 
+// Converte cliente do banco para formato de resposta da API.
 function mapCliente(
   u: {
     id: number;
@@ -159,6 +164,7 @@ function mapCliente(
   };
 }
 
+// Calcula totais do carrinho salvo na sessao.
 function carrinhoResumo(req: express.Request) {
   const car = req.session.carrinho ?? {};
   const items = Object.values(car);
@@ -175,6 +181,7 @@ function carrinhoResumo(req: express.Request) {
   };
 }
 
+// Bloqueia rotas administrativas para usuarios nao-admin.
 function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (req.session.usuario?.tipo !== "admin") {
     return erro(res, 403, "Acesso negado.");
@@ -183,10 +190,12 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 }
 
 // ——— Carrinho ———
+// Retorna itens e totais atuais do carrinho em sessao.
 app.get("/api/carrinho", (req, res) => {
   res.json(carrinhoResumo(req));
 });
 
+// Adiciona item ao carrinho validando estoque.
 app.post("/api/carrinho/adicionar", async (req, res) => {
   const produto_id = Number(req.body.produto_id);
   const quantidade = Math.max(1, Number(req.body.quantidade) || 1);
@@ -220,6 +229,7 @@ app.post("/api/carrinho/adicionar", async (req, res) => {
   });
 });
 
+// Atualiza quantidade de item no carrinho (ou remove se <= 0).
 app.post("/api/carrinho/atualizar", async (req, res) => {
   const produto_id = Number(req.body.produto_id);
   const quantidade = Number(req.body.quantidade);
@@ -242,6 +252,7 @@ app.post("/api/carrinho/atualizar", async (req, res) => {
   });
 });
 
+// Remove item especifico do carrinho.
 app.post("/api/carrinho/remover", (req, res) => {
   const produto_id = String(req.body.produto_id);
   if (req.session.carrinho) delete req.session.carrinho[produto_id];
@@ -255,10 +266,12 @@ app.post("/api/carrinho/remover", (req, res) => {
 });
 
 // ——— Auth ———
+// Retorna usuario autenticado da sessao atual.
 app.get("/api/auth/me", (req, res) => {
   res.json({ usuario: req.session.usuario ?? null });
 });
 
+// Cadastra novo usuario cliente.
 app.post("/api/auth/cadastro", async (req, res) => {
   const nome = String(req.body.nome ?? "").trim();
   const email = String(req.body.email ?? "").trim().toLowerCase();
@@ -280,6 +293,7 @@ app.post("/api/auth/cadastro", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Realiza login e grava dados basicos na sessao.
 app.post("/api/auth/login", async (req, res) => {
   const email = String(req.body.email ?? "").trim().toLowerCase();
   const senha = String(req.body.senha ?? "");
@@ -307,6 +321,7 @@ app.post("/api/auth/login", async (req, res) => {
   });
 });
 
+// Encerra a sessao do usuario atual.
 app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
@@ -314,6 +329,7 @@ app.post("/api/auth/logout", (req, res) => {
 });
 
 // ——— Clientes (Admin) ———
+// Lista clientes para o painel administrativo.
 app.get("/api/clientes", requireAdmin, async (_req, res) => {
   const list = await prisma.user.findMany({
     where: { tipo: "cliente" },
@@ -335,6 +351,7 @@ app.get("/api/clientes", requireAdmin, async (_req, res) => {
   res.json(list.map(mapCliente));
 });
 
+// Cria cliente manualmente pelo admin.
 app.post("/api/clientes", requireAdmin, async (req, res) => {
   const nome = String(req.body.nome ?? "").trim();
   const email = String(req.body.email ?? "").trim().toLowerCase();
@@ -388,6 +405,7 @@ app.post("/api/clientes", requireAdmin, async (req, res) => {
   res.json(mapCliente(cliente));
 });
 
+// Atualiza dados de cliente pelo admin.
 app.put("/api/clientes/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const nome = String(req.body.nome ?? "").trim();
@@ -460,6 +478,7 @@ app.put("/api/clientes/:id", requireAdmin, async (req, res) => {
   res.json(mapCliente(cliente));
 });
 
+// Remove cliente e desvincula pedidos relacionados.
 app.delete("/api/clientes/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   if (!id) return erro(res, 400, "ID inválido.");
@@ -476,11 +495,13 @@ app.delete("/api/clientes/:id", requireAdmin, async (req, res) => {
 });
 
 // ——— Categorias ———
+// Lista categorias de produtos.
 app.get("/api/categorias", async (_req, res) => {
   const list = await prisma.category.findMany({ orderBy: { nome: "asc" } });
   res.json(list.map(mapCategoria));
 });
 
+// Cria nova categoria (admin).
 app.post("/api/categorias", requireAdmin, async (req, res) => {
   const nome = String(req.body.nome ?? "").trim();
   let slug = String(req.body.slug ?? "").trim();
@@ -495,6 +516,7 @@ app.post("/api/categorias", requireAdmin, async (req, res) => {
   }
 });
 
+// Atualiza categoria existente (admin).
 app.put("/api/categorias/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const nome = String(req.body.nome ?? "").trim();
@@ -513,6 +535,7 @@ app.put("/api/categorias/:id", requireAdmin, async (req, res) => {
   }
 });
 
+// Exclui categoria sem produtos vinculados (admin).
 app.delete("/api/categorias/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const count = await prisma.product.count({ where: { categoriaId: id } });
@@ -522,6 +545,7 @@ app.delete("/api/categorias/:id", requireAdmin, async (req, res) => {
 });
 
 // ——— Produtos ———
+// Lista produtos com filtros de categoria, busca e destaque.
 app.get("/api/produtos", async (req, res) => {
   const admin = req.session.usuario?.tipo === "admin";
   const todos = admin && req.query.todos === "1";
@@ -556,6 +580,7 @@ app.get("/api/produtos", async (req, res) => {
   res.json(list.map(mapProduto));
 });
 
+// Busca produto ativo por ID.
 app.get("/api/produtos/:id", async (req, res) => {
   const id = Number(req.params.id);
   const p = await prisma.product.findFirst({
@@ -566,6 +591,7 @@ app.get("/api/produtos/:id", async (req, res) => {
   res.json(mapProduto(p));
 });
 
+// Cria produto com upload de imagem (admin).
 app.post("/api/produtos", requireAdmin, upload.single("imagem"), async (req, res) => {
   const nome = String(req.body.nome ?? "").trim();
   const descricao = String(req.body.descricao ?? "");
@@ -598,6 +624,7 @@ app.post("/api/produtos", requireAdmin, upload.single("imagem"), async (req, res
   res.json(mapProduto(p));
 });
 
+// Atualiza dados de produto e imagem opcional (admin).
 app.put("/api/produtos/:id", requireAdmin, upload.single("imagem"), async (req, res) => {
   const id = Number(req.params.id);
   const nome = String(req.body.nome ?? "").trim();
@@ -633,6 +660,7 @@ app.put("/api/produtos/:id", requireAdmin, upload.single("imagem"), async (req, 
   }
 });
 
+// Faz exclusao logica de produto (admin).
 app.delete("/api/produtos/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   await prisma.product.update({ where: { id }, data: { ativo: 0 } }).catch(() => null);
@@ -642,6 +670,7 @@ app.delete("/api/produtos/:id", requireAdmin, async (req, res) => {
 // ——— Pedidos ———
 const FORMAS = ["pix", "cartao", "dinheiro"] as const;
 
+// Cria pedido a partir do carrinho/itens e baixa estoque em transacao.
 app.post("/api/pedidos", async (req, res) => {
   const nome_cliente = String(req.body.nome ?? req.body.nome_cliente ?? "").trim();
   const telefone = String(req.body.telefone ?? "").trim();
@@ -781,6 +810,7 @@ app.post("/api/pedidos", async (req, res) => {
   }
 });
 
+// Padroniza resposta detalhada de pedidos com itens relacionados.
 function mapPedidoCompleto(p: {
   id: number;
   usuarioId: number | null;
@@ -835,6 +865,7 @@ function mapPedidoCompleto(p: {
 }
 
 app.get("/api/pedidos/meus", async (req, res) => {
+  // Lista pedidos do usuario autenticado.
   if (!req.session.usuario) return erro(res, 401, "Não autenticado.");
   const list = await prisma.order.findMany({
     where: { usuarioId: req.session.usuario.id },
@@ -844,6 +875,7 @@ app.get("/api/pedidos/meus", async (req, res) => {
   res.json(list.map(mapPedidoCompleto));
 });
 
+// Retorna pedido de confirmacao com controle de acesso por sessao.
 app.get("/api/pedidos/confirmacao/:id", async (req, res) => {
   const id = Number(req.params.id);
   const p = await prisma.order.findUnique({
@@ -860,6 +892,7 @@ app.get("/api/pedidos/confirmacao/:id", async (req, res) => {
   res.json(mapPedidoCompleto(p));
 });
 
+// Lista pedidos para administracao (com filtro de status opcional).
 app.get("/api/pedidos", requireAdmin, async (req, res) => {
   const status = req.query.status ? String(req.query.status) : undefined;
   const list = await prisma.order.findMany({
@@ -870,6 +903,7 @@ app.get("/api/pedidos", requireAdmin, async (req, res) => {
   res.json(list.map(mapPedidoCompleto));
 });
 
+// Retorna detalhes de um pedido especifico (admin).
 app.get("/api/pedidos/:id", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const p = await prisma.order.findUnique({
@@ -880,6 +914,7 @@ app.get("/api/pedidos/:id", requireAdmin, async (req, res) => {
   res.json(mapPedidoCompleto(p));
 });
 
+// Atualiza status operacional do pedido (admin).
 app.put("/api/pedidos/:id/status", requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const status = String(req.body.status ?? "");
@@ -890,6 +925,7 @@ app.put("/api/pedidos/:id/status", requireAdmin, async (req, res) => {
 });
 
 // ——— Admin stats ———
+// Agrega metricas para dashboard administrativo.
 app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
   const ago7 = new Date();
   ago7.setDate(ago7.getDate() - 7);
@@ -970,6 +1006,7 @@ app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
 // ——— Frete ———
 const CEP_ORIGEM = (process.env.CEP_ORIGEM ?? "87501000").replace(/\D/g, "");
 
+// Classifica origem/destino em zonas para calcular preco e prazo.
 function getZonaFrete(cepOrigem: string, cepDestino: string): 1 | 2 | 3 | 4 {
   const o = parseInt(cepOrigem.substring(0, 2), 10);
   const d = parseInt(cepDestino.substring(0, 2), 10);
@@ -1033,6 +1070,7 @@ function getZonaFrete(cepOrigem: string, cepDestino: string): 1 | 2 | 3 | 4 {
   return 4;
 }
 
+// Aplica tabela de frete (PAC/SEDEX) com peso faturado.
 function calcularOpcoesFrete(zona: 1 | 2 | 3 | 4, pesoKg: number): {
   pac: { preco: number; prazo: string };
   sedex: { preco: number; prazo: string };
@@ -1052,6 +1090,7 @@ function calcularOpcoesFrete(zona: 1 | 2 | 3 | 4, pesoKg: number): {
 }
 
 app.get("/api/frete/calcular", async (req, res) => {
+  // Calcula opcoes de frete a partir do CEP de destino e peso.
   try {
     const cep = String(req.query.cep ?? "").replace(/\D/g, "");
     const peso = Math.max(0.3, parseFloat(String(req.query.peso ?? "1")) || 1);
@@ -1076,8 +1115,10 @@ app.get("/api/frete/calcular", async (req, res) => {
   }
 });
 
+// Endpoint simples para healthcheck.
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
+// Tratamento global de erros nao capturados nas rotas.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(500).json({ erro: err.message || "Erro interno" });
