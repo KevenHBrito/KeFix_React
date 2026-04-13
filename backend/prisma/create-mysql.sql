@@ -1,7 +1,8 @@
-
+-- Cria (se nao existir) e seleciona o banco da aplicacao.
 CREATE DATABASE IF NOT EXISTS `kefix` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `kefix`;
 
+-- Tabela de usuarios e administradores.
 CREATE TABLE IF NOT EXISTS `usuarios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   UNIQUE KEY `usuarios_email_key` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabela de categorias do catalogo.
 CREATE TABLE IF NOT EXISTS `categorias` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) NOT NULL,
@@ -29,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `categorias` (
   UNIQUE KEY `categorias_slug_key` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabela de produtos vinculados a categorias.
 CREATE TABLE IF NOT EXISTS `produtos` (
   `id` int NOT NULL AUTO_INCREMENT,
   `categoria_id` int NOT NULL,
@@ -47,6 +50,7 @@ CREATE TABLE IF NOT EXISTS `produtos` (
   CONSTRAINT `produtos_categoria_id_fkey` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Tabela principal de pedidos realizados.
 CREATE TABLE IF NOT EXISTS `pedidos` (
   `id` int NOT NULL AUTO_INCREMENT,
   `usuario_id` int DEFAULT NULL,
@@ -68,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `pedidos` (
   CONSTRAINT `pedidos_usuario_id_fkey` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Itens de cada pedido com relacao para pedido e produto.
 CREATE TABLE IF NOT EXISTS `itens_pedido` (
   `id` int NOT NULL AUTO_INCREMENT,
   `pedido_id` int NOT NULL,

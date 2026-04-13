@@ -1,7 +1,9 @@
 import type { SessionUser } from "./types.js";
 
+// Estende a sessao do express-session com os dados usados pela aplicacao.
 declare module "express-session" {
   interface SessionData {
+    // Carrinho temporario salvo por sessao, indexado pelo id do produto.
     carrinho?: Record<
       string,
       {
@@ -12,7 +14,9 @@ declare module "express-session" {
         quantidade: number;
       }
     >;
+    // Usuario autenticado atualmente na sessao.
     usuario?: SessionUser;
+    // Ultimo pedido criado para liberar tela de confirmacao ao convidado.
     ultimoPedidoId?: number;
   }
 }

@@ -1,8 +1,9 @@
+// Configura a geração do cliente Prisma usado no backend.
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "windows"]
+  provider = "prisma-client-js"
 }
 
+// Define conexão com MySQL via variável de ambiente.
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
